@@ -49,11 +49,14 @@ public:
 private:
     explicit WebStorageNamespaceProvider(const String& localStorageDatabasePath);
 
-    Ref<WebCore::StorageNamespace> createSessionStorageNamespace(WebCore::Page&, unsigned quota) override;
     Ref<WebCore::StorageNamespace> createLocalStorageNamespace(unsigned quota, PAL::SessionID) override;
     Ref<WebCore::StorageNamespace> createTransientLocalStorageNamespace(WebCore::SecurityOrigin&, unsigned quota, PAL::SessionID) override;
 
+    RefPtr<WebCore::StorageNamespace> sessionStorageNamespace(const WebCore::SecurityOrigin&, WebCore::Page&, ShouldCreateNamespace) final;
+    void setSessionStorageNamespace(const WebCore::SecurityOrigin&, WebCore::Page&, RefPtr<WebCore::StorageNamespace>&&) final;
+
     const String m_localStorageDatabasePath;
+    HashMap<std::pair<WebCore::Page *, WebCore::SecurityOriginData>, RefPtr<WebCore::StorageNamespace>> m_sessionStorageNamespaces;
 };
 
 } // namespace WebKit
