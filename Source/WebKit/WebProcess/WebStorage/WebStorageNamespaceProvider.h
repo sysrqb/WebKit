@@ -26,6 +26,7 @@
 #pragma once
 
 #include "StorageNamespaceIdentifier.h"
+#include "StorageNamespaceImpl.h"
 #include <WebCore/StorageNamespaceProvider.h>
 
 namespace WebKit {
@@ -37,14 +38,27 @@ public:
     static Ref<WebStorageNamespaceProvider> getOrCreate(WebPageGroupProxy&);
     virtual ~WebStorageNamespaceProvider();
 
+    static void incrementUseCount(const WebPageGroupProxy&, const StorageNamespaceImpl::Identifier);
+    static void decrementUseCount(const WebPageGroupProxy&, const StorageNamespaceImpl::Identifier);
+
 private:
     explicit WebStorageNamespaceProvider(StorageNamespaceIdentifier localStorageIdentifier);
 
-    Ref<WebCore::StorageNamespace> createSessionStorageNamespace(WebCore::Page&, unsigned quota) override;
     Ref<WebCore::StorageNamespace> createLocalStorageNamespace(unsigned quota, PAL::SessionID) override;
     Ref<WebCore::StorageNamespace> createTransientLocalStorageNamespace(WebCore::SecurityOrigin&, unsigned quota, PAL::SessionID) override;
 
+    RefPtr<WebCore::StorageNamespace> sessionStorageNamespace(const WebCore::SecurityOrigin&, WebCore::Page&, ShouldCreateNamespace) final;
+    void setSessionStorageNamespace(const WebCore::SecurityOrigin&, WebCore::Page&, RefPtr<WebCore::StorageNamespace>&&) final;
+
+
     const StorageNamespaceIdentifier m_localStorageNamespaceIdentifier;
+
+    struct SessionStorageNamespaces {
+        unsigned useCount { 0 };
+        HashMap<WebCore::SecurityOriginData, RefPtr<WebCore::StorageNamespace>> map;
+    };
+
+    HashMap<StorageNamespaceImpl::Identifier, SessionStorageNamespaces> m_sessionStorageNamespaces;
 };
 
 }

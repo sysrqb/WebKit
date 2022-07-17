@@ -669,9 +669,6 @@ public:
 
     void invalidateInjectedStyleSheetCacheInAllFrames();
 
-    StorageNamespace* sessionStorage(bool optionalCreate = true);
-    void setSessionStorage(RefPtr<StorageNamespace>&&);
-
     bool hasCustomHTMLTokenizerTimeDelay() const;
     double customHTMLTokenizerTimeDelay() const;
 
@@ -1138,8 +1135,6 @@ private:
     JSC::Debugger* m_debugger { nullptr };
 
     bool m_canStartMedia { true };
-
-    RefPtr<StorageNamespace> m_sessionStorage;
 
     TimerThrottlingState m_timerThrottlingState { TimerThrottlingState::Disabled };
     MonotonicTime m_timerThrottlingStateLastChangedTime;

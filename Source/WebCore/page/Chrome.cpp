@@ -51,6 +51,7 @@
 #include "Settings.h"
 #include "ShareData.h"
 #include "StorageNamespace.h"
+#include "StorageNamespaceProvider.h"
 #include "WindowFeatures.h"
 #include <JavaScriptCore/VM.h>
 #include <wtf/SetForScope.h>
@@ -195,9 +196,11 @@ Page* Chrome::createWindow(Frame& frame, const WindowFeatures& features, const N
     if (!newPage)
         return nullptr;
 
-    if (!features.noopener && !features.noreferrer) {
-        if (auto* oldSessionStorage = m_page.sessionStorage(false))
-            newPage->setSessionStorage(oldSessionStorage->copy(*newPage));
+    auto* document = m_page.mainFrame().document();
+    if (!features.noopener && !features.noreferrer && document) {
+        constexpr auto doNotCreate = StorageNamespaceProvider::ShouldCreateNamespace::No;
+        if (auto oldSessionStorage = m_page.storageNamespaceProvider().sessionStorageNamespace(document->topOrigin(), m_page, doNotCreate))
+            newPage->storageNamespaceProvider().setSessionStorageNamespace(document->topOrigin(), *newPage, oldSessionStorage->copy(*newPage));
     }
 
     return newPage;

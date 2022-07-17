@@ -97,11 +97,6 @@ void WebStorageNamespaceProvider::syncLocalStorage()
     }
 }
 
-Ref<StorageNamespace> WebStorageNamespaceProvider::createSessionStorageNamespace(Page& page, unsigned quota)
-{
-    return StorageNamespaceImpl::createSessionStorageNamespace(quota, page.sessionID());
-}
-
 Ref<StorageNamespace> WebStorageNamespaceProvider::createLocalStorageNamespace(unsigned quota, PAL::SessionID sessionID)
 {
     return StorageNamespaceImpl::getOrCreateLocalStorageNamespace(m_localStorageDatabasePath, quota, sessionID);
@@ -112,6 +107,21 @@ Ref<StorageNamespace> WebStorageNamespaceProvider::createTransientLocalStorageNa
     // FIXME: A smarter implementation would create a special namespace type instead of just piggy-backing off
     // SessionStorageNamespace here.
     return StorageNamespaceImpl::createSessionStorageNamespace(quota, sessionID);
+}
+
+RefPtr<StorageNamespace> WebStorageNamespaceProvider::sessionStorageNamespace(const SecurityOrigin& topLevelOrigin, Page& page, ShouldCreateNamespace shouldCreate)
+{
+    ASSERT(sessionStorageQuota() != WebCore::StorageMap::noQuota);
+
+    auto& slot = m_sessionStorageNamespaces.add({ &page, topLevelOrigin.data() }, nullptr).iterator->value;
+    if (!slot && shouldCreate == ShouldCreateNamespace::Yes)
+        slot = StorageNamespaceImpl::createSessionStorageNamespace(sessionStorageQuota(), page.sessionID());
+    return slot;
+}
+
+void WebStorageNamespaceProvider::setSessionStorageNamespace(const WebCore::SecurityOrigin& topLevelOrigin, WebCore::Page& page, RefPtr<WebCore::StorageNamespace>&& newNamespace)
+{
+    m_sessionStorageNamespaces.add({ &page, topLevelOrigin.data() }, WTFMove(newNamespace));
 }
 
 }
