@@ -1047,8 +1047,6 @@ public:
     WEBCORE_EXPORT ExceptionOr<void> setBodyOrFrameset(RefPtr<HTMLElement>&&);
 
     Location* location() const;
-    void setLocationURL(const URL&);
-    const URL& locationURL() const { return m_locationURL; }
 
     WEBCORE_EXPORT HTMLHeadElement* head();
 
@@ -1842,7 +1840,6 @@ private:
     URL m_cookieURL; // The URL to use for cookie access.
     URL m_firstPartyForCookies; // The policy URL for third-party cookie blocking.
     URL m_siteForCookies; // The policy URL for Same-Site cookies.
-    URL m_locationURL; // The URL used for Location.
 
     // Document.documentURI:
     // Although URL-like, Document.documentURI can actually be set to any

@@ -53,7 +53,7 @@ inline const URL& Location::url() const
     if (!frame())
         return aboutBlankURL();
 
-    const URL& url = frame()->document()->locationURL();
+    const URL& url = frame()->document()->url();
     if (!url.isValid())
         return aboutBlankURL(); // Use "about:blank" while the page is still loading (before we have a frame).
 
@@ -134,7 +134,7 @@ ExceptionOr<void> Location::setProtocol(DOMWindow& incumbentWindow, DOMWindow& f
     auto* frame = this->frame();
     if (!frame)
         return { };
-    URL url = frame->document()->locationURL();
+    URL url = frame->document()->url();
     if (!url.setProtocol(protocol))
         return Exception { SyntaxError };
     return setLocation(incumbentWindow, firstWindow, url.string());
@@ -145,7 +145,7 @@ ExceptionOr<void> Location::setHost(DOMWindow& incumbentWindow, DOMWindow& first
     auto* frame = this->frame();
     if (!frame)
         return { };
-    URL url = frame->document()->locationURL();
+    URL url = frame->document()->url();
     url.setHostAndPort(host);
     return setLocation(incumbentWindow, firstWindow, url.string());
 }
@@ -155,7 +155,7 @@ ExceptionOr<void> Location::setHostname(DOMWindow& incumbentWindow, DOMWindow& f
     auto* frame = this->frame();
     if (!frame)
         return { };
-    URL url = frame->document()->locationURL();
+    URL url = frame->document()->url();
     url.setHost(hostname);
     return setLocation(incumbentWindow, firstWindow, url.string());
 }
@@ -165,7 +165,7 @@ ExceptionOr<void> Location::setPort(DOMWindow& incumbentWindow, DOMWindow& first
     auto* frame = this->frame();
     if (!frame)
         return { };
-    URL url = frame->document()->locationURL();
+    URL url = frame->document()->url();
     url.setPort(parseInteger<uint16_t>(portString));
     return setLocation(incumbentWindow, firstWindow, url.string());
 }
@@ -175,7 +175,7 @@ ExceptionOr<void> Location::setPathname(DOMWindow& incumbentWindow, DOMWindow& f
     auto* frame = this->frame();
     if (!frame)
         return { };
-    URL url = frame->document()->locationURL();
+    URL url = frame->document()->url();
     url.setPath(pathname);
     return setLocation(incumbentWindow, firstWindow, url.string());
 }
@@ -185,7 +185,7 @@ ExceptionOr<void> Location::setSearch(DOMWindow& incumbentWindow, DOMWindow& fir
     auto* frame = this->frame();
     if (!frame)
         return { };
-    URL url = frame->document()->locationURL();
+    URL url = frame->document()->url();
     url.setQuery(search);
     return setLocation(incumbentWindow, firstWindow, url.string());
 }
@@ -196,7 +196,7 @@ ExceptionOr<void> Location::setHash(DOMWindow& incumbentWindow, DOMWindow& first
     if (!frame)
         return { };
     ASSERT(frame->document());
-    auto url = frame->document()->locationURL();
+    auto url = frame->document()->url();
     auto oldFragmentIdentifier = url.fragmentIdentifier();
     StringView newFragmentIdentifier { hash };
     if (hash.startsWith('#'))

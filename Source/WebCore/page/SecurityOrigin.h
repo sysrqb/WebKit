@@ -83,7 +83,10 @@ public:
 
     const String& protocol() const { return m_data.protocol; }
     const String& host() const { return m_data.host; }
-    const String& domain() const { return m_domain; }
+    const String& domain() const {
+        WTFLogAlways("SecurityOrigin::domain: %s, %p", m_domain.ascii().data(), this);
+        return m_domain;
+    }
     std::optional<uint16_t> port() const { return m_data.port; }
 
     static bool shouldIgnoreHost(const URL&);

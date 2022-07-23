@@ -1225,9 +1225,14 @@ bool DocumentLoader::isLoadingRemoteArchive() const
 
 void DocumentLoader::commitData(const SharedBuffer& data)
 {
+#if ENABLE(WEB_ARCHIVE)
+    URL documentOrEmptyURL = documentURL();
+#else
+    URL documentOrEmptyURL = documentURL();
+#endif
     if (!m_gotFirstByte) {
         m_gotFirstByte = true;
-        bool hasBegun = m_writer.begin(documentURL(), false, nullptr, m_resultingClientId);
+        bool hasBegun = m_writer.begin(documentOrEmptyURL, false, nullptr, m_resultingClientId);
         if (!hasBegun)
             return;
 
@@ -1254,6 +1259,7 @@ void DocumentLoader::commitData(const SharedBuffer& data)
             document.setBaseURLOverride(m_archive->mainResource()->url());
             if (LegacySchemeRegistry::shouldTreatURLSchemeAsLocal(documentURL().protocol().toStringWithoutCopying()))
                 document.securityOrigin().grantLoadLocalResources();
+            document.setURL(m_archive->mainResource()->url());
         }
 #endif
 #if ENABLE(SERVICE_WORKER)

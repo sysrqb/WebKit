@@ -3134,11 +3134,6 @@ Location* Document::location() const
     return window ? &window->location() : nullptr;
 }
 
-void Document::setLocationURL(const URL& url)
-{
-    m_locationURL = url;
-}
-
 HTMLHeadElement* Document::head()
 {
     if (auto element = documentElement())

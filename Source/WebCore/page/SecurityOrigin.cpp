@@ -179,6 +179,7 @@ SecurityOrigin::SecurityOrigin(const URL& url)
     : m_data(SecurityOriginData::fromURL(url))
     , m_isLocal(LegacySchemeRegistry::shouldTreatURLSchemeAsLocal(m_data.protocol))
 {
+    WTFLogAlways("SecurityOrigin::SecurityOrigin: %s: %p", url.string().ascii().data(), this);
     // document.domain starts as m_data.host, but can be set by the DOM.
     m_domain = m_data.host;
 
@@ -198,6 +199,7 @@ SecurityOrigin::SecurityOrigin()
     , m_uniqueOriginIdentifier { UniqueOriginIdentifier::generateThreadSafe() }
     , m_isPotentiallyTrustworthy { false }
 {
+    WTFLogAlways("SecurityOrigin::SecurityOrigin: empty origin: %p", this);
 }
 
 SecurityOrigin::SecurityOrigin(const SecurityOrigin* other)
@@ -213,10 +215,12 @@ SecurityOrigin::SecurityOrigin(const SecurityOrigin* other)
     , m_isPotentiallyTrustworthy { other->m_isPotentiallyTrustworthy }
     , m_isLocal { other->m_isLocal }
 {
+    WTFLogAlways("SecurityOrigin::SecurityOrigin: Copy: %s, %p", m_domain.ascii().data(), this);
 }
 
 Ref<SecurityOrigin> SecurityOrigin::create(const URL& url)
 {
+    WTFLogAlways("SecurityOrigin::create: %s", url.string().ascii().data());
     if (RefPtr<SecurityOrigin> cachedOrigin = getCachedOrigin(url))
         return cachedOrigin.releaseNonNull();
 
@@ -231,6 +235,7 @@ Ref<SecurityOrigin> SecurityOrigin::create(const URL& url)
 
 Ref<SecurityOrigin> SecurityOrigin::createUnique()
 {
+    WTFLogAlways("SecurityOrigin::createUnique");
     Ref<SecurityOrigin> origin(adoptRef(*new SecurityOrigin));
     ASSERT(origin.get().isUnique());
     return origin;

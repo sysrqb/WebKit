@@ -225,7 +225,12 @@ RefPtr<ArchiveResource> LegacyWebArchive::createResource(CFDictionaryRef diction
         response = createResourceResponseFromPropertyListData(resourceResponseData, resourceResponseVersion);
     }
 
-    return ArchiveResource::create(SharedBuffer::create(resourceData), URL { url }, mimeType, textEncoding, frameName, response);
+    URL url2 { url };
+    WTFLogAlways("LegacyWebArchive::createResource: 1: %s", url2.string().ascii().data());
+    String newProtocol { "webarchive+" + url2.protocol() };
+    url2.setProtocol(newProtocol);
+    WTFLogAlways("LegacyWebArchive::createResource: 2: %s", url2.string().ascii().data());
+    return ArchiveResource::create(SharedBuffer::create(resourceData), url2, mimeType, textEncoding, frameName, response);
 }
 
 Ref<LegacyWebArchive> LegacyWebArchive::create()

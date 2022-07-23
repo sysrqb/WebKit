@@ -130,17 +130,11 @@ bool DocumentWriter::begin(const URL& urlReference, bool dispatch, Document* own
     // We grab a local copy of the URL because it's easy for callers to supply
     // a URL that will be deallocated during the execution of this function.
     // For example, see <https://bugs.webkit.org/show_bug.cgi?id=66360>.
-    URL locationURL = urlReference;
-#if ENABLE(WEB_ARCHIVE)
-    URL documentOrEmptyURL = isLoadingRemoteArchive() ? URL() : urlReference;
-#else
-    URL documentOrEmptyURL = urlReference;
-#endif
+    URL url = urlReference;
 
     // Create a new document before clearing the frame, because it may need to
     // inherit an aliased security context.
-    Ref<Document> document = createDocument(documentOrEmptyURL, documentIdentifier);
-    document->setLocationURL(locationURL);
+    Ref<Document> document = createDocument(url, documentIdentifier);
     
     // If the new document is for a Plugin but we're supposed to be sandboxed from Plugins,
     // then replace the document with one whose parser will ignore the incoming data (bug 39323)
