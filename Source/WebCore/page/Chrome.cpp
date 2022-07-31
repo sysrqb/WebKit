@@ -197,11 +197,8 @@ Page* Chrome::createWindow(Frame& frame, const WindowFeatures& features, const N
         return nullptr;
 
     auto* document = m_page.mainFrame().document();
-    if (!features.noopener && !features.noreferrer && document) {
-        constexpr auto doNotCreate = StorageNamespaceProvider::ShouldCreateNamespace::No;
-        if (auto oldSessionStorage = m_page.storageNamespaceProvider().sessionStorageNamespace(document->topOrigin(), m_page, doNotCreate))
-            newPage->storageNamespaceProvider().setSessionStorageNamespace(document->topOrigin(), *newPage, oldSessionStorage->copy(*newPage));
-    }
+    if (!features.noopener && !features.noreferrer && document)
+        m_page.storageNamespaceProvider().copySessionStorageNamespace(m_page, *newPage);
 
     return newPage;
 }

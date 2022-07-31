@@ -119,9 +119,16 @@ RefPtr<StorageNamespace> WebStorageNamespaceProvider::sessionStorageNamespace(co
     return slot;
 }
 
-void WebStorageNamespaceProvider::setSessionStorageNamespace(const WebCore::SecurityOrigin& topLevelOrigin, WebCore::Page& page, RefPtr<WebCore::StorageNamespace>&& newNamespace)
+void WebStorageNamespaceProvider::copySessionStorageNamespace(WebCore::Page& oldPage, WebCore::Page& newPage)
 {
-    m_sessionStorageNamespaces.add({ &page, topLevelOrigin.data() }, WTFMove(newNamespace));
+    ASSERT(sessionStorageQuota() != WebCore::StorageMap::noQuota);
+
+    for (auto& [k, v] : m_sessionStorageNamespaces) {
+        if (k.first != &oldPage)
+            continue;
+        m_sessionStorageNamespaces.set({ &newPage, k.second }, v->copy(newPage));
+        break;
+    }
 }
 
 }

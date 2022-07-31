@@ -53,7 +53,7 @@ private:
     Ref<WebCore::StorageNamespace> createTransientLocalStorageNamespace(WebCore::SecurityOrigin&, unsigned quota, PAL::SessionID) override;
 
     RefPtr<WebCore::StorageNamespace> sessionStorageNamespace(const WebCore::SecurityOrigin&, WebCore::Page&, ShouldCreateNamespace) final;
-    void setSessionStorageNamespace(const WebCore::SecurityOrigin&, WebCore::Page&, RefPtr<WebCore::StorageNamespace>&&) final;
+    void copySessionStorageNamespace(WebCore::Page&, WebCore::Page&) final;
 
     const String m_localStorageDatabasePath;
     HashMap<std::pair<WebCore::Page *, WebCore::SecurityOriginData>, RefPtr<WebCore::StorageNamespace>> m_sessionStorageNamespaces;
