@@ -102,7 +102,7 @@ Ref<WebCore::StorageNamespace> WebStorageNamespaceProvider::createTransientLocal
     return StorageNamespaceImpl::createTransientLocalStorageNamespace(m_localStorageNamespaceIdentifier, topLevelOrigin, quota);
 }
 
-RefPtr<WebCore::StorageNamespace> WebStorageNamespaceProvider::sessionStorageNamespace(const WebCore::SecurityOrigin& topLevelOrigin, WebCore::Page& page, ShouldCreateNamespace shouldCreate)
+RefPtr<WebCore::StorageNamespace> WebStorageNamespaceProvider::sessionStorageNamespace(const WebCore::SecurityOrigin& topLevelOrigin, WebCore::Page& page)
 {
     ASSERT(sessionStorageQuota() != WebCore::StorageMap::noQuota);
 
@@ -112,17 +112,25 @@ RefPtr<WebCore::StorageNamespace> WebStorageNamespaceProvider::sessionStorageNam
     // WebPageProxyIdentifier and these need to share the same namespace instance so we know where to route the IPC to.
     auto& namespacesSlot = m_sessionStorageNamespaces.add(webPage.sessionStorageNamespaceIdentifier(), SessionStorageNamespaces { }).iterator->value;
     auto& slot = namespacesSlot.map.add(topLevelOrigin.data(), nullptr).iterator->value;
-    if (!slot && shouldCreate == ShouldCreateNamespace::Yes)
+    if (!slot)
         slot = StorageNamespaceImpl::createSessionStorageNamespace(webPage.sessionStorageNamespaceIdentifier(), webPage.identifier(), topLevelOrigin, sessionStorageQuota());
     return slot;
 }
 
-void WebStorageNamespaceProvider::setSessionStorageNamespace(const WebCore::SecurityOrigin& topLevelOrigin, WebCore::Page& page, RefPtr<WebCore::StorageNamespace>&& newNamespace)
+void WebStorageNamespaceProvider::cloneSessionStorageNamespace(WebCore::Page& oldPage, WebCore::Page& newPage) final;
 {
-    auto& webPage = WebPage::fromCorePage(page);
+    ASSERT(sessionStorageQuota() != WebCore::StorageMap::noQuota);
 
-    auto& slot = m_sessionStorageNamespaces.add(webPage.sessionStorageNamespaceIdentifier(), SessionStorageNamespaces { }).iterator->value;
-    slot.map.add(topLevelOrigin.data(), WTFMove(newNamespace));
+    auto& oldWebPage = WebPage::fromCorePage(oldPage);
+    auto& newWebPage = WebPage::fromCorePage(newPage);
+
+    auto& newSessionStorageNamespacess = newPage->storageNamespaceProvider().m_sessionStorageNamespaces;
+
+    auto& newNamespacesSlot = newSessionStorageNamespacess.add(newWebPage.sessionStorageNamespaceIdentifier(), SessionStorageNamespaces { }).iterator->value;
+    auto& oldNamespacesSlot = m_sessionStorageNamespaces.add(oldWebPage.sessionStorageNamespaceIdentifier(), SessionStorageNamespaces { }).iterator->value;
+
+    for (auto& [k, v] : oldNamespaceSlot.map)
+        newNamespacesSlot.map.set(k, WTFMove(v->copy(*newPage)));
 }
 
 }

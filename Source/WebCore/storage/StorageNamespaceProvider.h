@@ -49,8 +49,7 @@ public:
     Ref<StorageArea> localStorageArea(Document&);
     Ref<StorageArea> sessionStorageArea(Document&);
 
-    enum class ShouldCreateNamespace : bool { No, Yes };
-    virtual RefPtr<StorageNamespace> sessionStorageNamespace(const SecurityOrigin&, Page&, ShouldCreateNamespace = ShouldCreateNamespace::Yes) = 0;
+    virtual RefPtr<StorageNamespace> sessionStorageNamespace(const SecurityOrigin&, Page&) = 0;
 
     WEBCORE_EXPORT void setSessionIDForTesting(PAL::SessionID);
 
