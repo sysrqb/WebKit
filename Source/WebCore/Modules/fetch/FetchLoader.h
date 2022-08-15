@@ -68,6 +68,7 @@ private:
     FetchBodyConsumer* m_consumer;
     bool m_isStarted { false };
     URL m_urlForReading;
+    RefPtr<ScriptExecutionContext> m_context;
 };
 
 } // namespace WebCore

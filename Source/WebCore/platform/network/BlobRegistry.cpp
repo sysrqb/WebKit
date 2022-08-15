@@ -31,10 +31,17 @@
 
 namespace WebCore {
 
-BlobRegistry& blobRegistry()
+class SecurityOriginData;
+
+Ref<BlobRegistry> blobRegistry()
+{
+    return blobRegistry(SecurityOrigin::createUnique().data());
+}
+
+Ref<BlobRegistry> blobRegistry(const SecurityOriginData& origin)
 {
     ASSERT(isMainThread());
-    return *platformStrategies()->blobRegistry();
+    return platformStrategies()->blobRegistry(origin);
 }
 
 BlobRegistry::~BlobRegistry() = default;

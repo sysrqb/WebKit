@@ -51,6 +51,8 @@ class ScriptExecutionContext;
 class TextResourceDecoder;
 class ThreadableLoader;
 
+struct SecurityOriginData;
+
 class FileReaderLoader : public ThreadableLoaderClient {
 public:
     enum ReadType {
@@ -121,6 +123,7 @@ private:
     unsigned m_totalBytes;
 
     std::optional<ExceptionCode> m_errorCode;
+    std::optional<ScriptExecutionContext*> m_context;
 };
 
 } // namespace WebCore

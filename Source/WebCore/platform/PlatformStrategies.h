@@ -25,12 +25,15 @@
 
 #pragma once
 
+#include <BlobRegistry.h>
+#include <SecurityOriginData.h>
+
 namespace WebCore {
 
-class BlobRegistry;
 class LoaderStrategy;
 class MediaStrategy;
 class PasteboardStrategy;
+
 
 class PlatformStrategies {
 public:
@@ -55,11 +58,9 @@ public:
         return *m_mediaStrategy;
     }
 
-    BlobRegistry* blobRegistry()
+    Ref<BlobRegistry> blobRegistry(SecurityOriginData& topOrigin)
     {
-        if (!m_blobRegistry)
-            m_blobRegistry = createBlobRegistry();
-        return m_blobRegistry;
+        return m_blobRegistryMap.add(topOrigin, adoptRef(*createBlobRegistry())).iterator->value;
     }
 
 protected:
@@ -78,7 +79,7 @@ private:
     LoaderStrategy* m_loaderStrategy { };
     PasteboardStrategy* m_pasteboardStrategy { };
     MediaStrategy* m_mediaStrategy { };
-    BlobRegistry* m_blobRegistry { };
+    HashMap<SecurityOriginData, Ref<BlobRegistry>> m_blobRegistryMap;
 };
 
 bool hasPlatformStrategies();

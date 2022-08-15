@@ -61,6 +61,8 @@ enum class SerializationReturnCode;
 enum class SerializationErrorMode { NonThrowing, Throwing };
 enum class SerializationContext { Default, WorkerPostMessage, WindowPostMessage };
 
+struct SecurityOriginData;
+
 using ArrayBufferContentsArray = Vector<JSC::ArrayBufferContents>;
 #if ENABLE(WEBASSEMBLY)
 using WasmModuleArray = Vector<RefPtr<JSC::Wasm::Module>>;

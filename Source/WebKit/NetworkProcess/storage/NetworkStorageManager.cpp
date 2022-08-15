@@ -813,15 +813,15 @@ void NetworkStorageManager::syncLocalStorage(CompletionHandler<void()>&& complet
     });
 }
 
-void NetworkStorageManager::registerTemporaryBlobFilePaths(IPC::Connection& connection, const Vector<String>& filePaths)
+void NetworkStorageManager::registerTemporaryBlobFilePaths(IPC::Connection& connection, SecurityOrigin& topOrigin, const Vector<String>& filePaths)
 {
     ASSERT(RunLoop::isMain());
 
     m_queue->dispatch([this, protectedThis = Ref { *this }, connectionID = connection.uniqueID(), filePaths = crossThreadCopy(filePaths)] {
         auto& temporaryBlobPaths = m_temporaryBlobPathsByConnection.ensure(connectionID, [] {
-            return HashSet<String> { };
+            return HashMap<SecurityOrigin, String> { };
         }).iterator->value;
-        temporaryBlobPaths.add(filePaths.begin(), filePaths.end());
+        temporaryBlobPaths.add(topOrigin, filePaths.begin(), filePaths.end());
     });
 }
 

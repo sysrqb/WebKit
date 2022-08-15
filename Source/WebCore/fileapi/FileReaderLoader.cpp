@@ -70,8 +70,8 @@ FileReaderLoader::~FileReaderLoader()
 {
     cancel();
 
-    if (!m_urlForReading.isEmpty())
-        ThreadableBlobRegistry::unregisterBlobURL(m_urlForReading);
+    if (!m_urlForReading.isEmpty() && m_context)
+        ThreadableBlobRegistry::unregisterBlobURL(m_context.value()->topOrigin(), m_urlForReading);
 }
 
 void FileReaderLoader::start(ScriptExecutionContext* scriptExecutionContext, Blob& blob)
@@ -89,7 +89,7 @@ void FileReaderLoader::start(ScriptExecutionContext* scriptExecutionContext, con
         failed(SecurityError);
         return;
     }
-    ThreadableBlobRegistry::registerBlobURL(scriptExecutionContext->securityOrigin(), scriptExecutionContext->policyContainer(), m_urlForReading, blobURL);
+    ThreadableBlobRegistry::registerBlobURL(scriptExecutionContext->topOrigin(), scriptExecutionContext->securityOrigin(), scriptExecutionContext->policyContainer(), m_urlForReading, blobURL);
 
     // Construct and load the request.
     ResourceRequest request(m_urlForReading);
@@ -101,6 +101,8 @@ void FileReaderLoader::start(ScriptExecutionContext* scriptExecutionContext, con
     options.credentials = FetchOptions::Credentials::Include;
     options.mode = FetchOptions::Mode::SameOrigin;
     options.contentSecurityPolicyEnforcement = ContentSecurityPolicyEnforcement::DoNotEnforce;
+
+    m_context = scriptExecutionContext;
 
     if (m_client) {
         auto loader = ThreadableLoader::create(*scriptExecutionContext, *this, WTFMove(request), options);

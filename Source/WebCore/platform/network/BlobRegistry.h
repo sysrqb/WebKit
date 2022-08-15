@@ -33,6 +33,8 @@
 
 #include <optional>
 #include <wtf/Forward.h>
+#include <wtf/RefCounted.h>
+#include <SecurityOrigin.h>
 
 namespace WebCore {
 
@@ -43,11 +45,14 @@ class BlobRegistryImpl;
 
 struct PolicyContainer;
 
-WEBCORE_EXPORT BlobRegistry& blobRegistry();
+WEBCORE_EXPORT Ref<BlobRegistry> blobRegistry();
+WEBCORE_EXPORT Ref<BlobRegistry> blobRegistry(const SecurityOriginData&);
 
 // BlobRegistry is not thread-safe. It should only be called from main thread.
-class WEBCORE_EXPORT BlobRegistry {
+class WEBCORE_EXPORT BlobRegistry : public RefCounted<BlobRegistry> {
 public:
+
+    BlobRegistry(const SecurityOrigin& topOrigin) : m_topOrigin { const_cast<SecurityOrigin&>(topOrigin) } {}
 
     // Registers a blob URL referring to the specified file.
     virtual void registerFileBlobURL(const URL&, Ref<BlobDataFileReference>&&, const String& path, const String& contentType) = 0;
@@ -75,8 +80,13 @@ public:
 
     virtual BlobRegistryImpl* blobRegistryImpl() { return nullptr; }
 
-protected:
+    const Ref<SecurityOrigin> topOrigin() { return m_topOrigin; }
     virtual ~BlobRegistry();
+
+protected:
+
+private:
+    const Ref<SecurityOrigin> m_topOrigin;
 };
 
 } // namespace WebCore

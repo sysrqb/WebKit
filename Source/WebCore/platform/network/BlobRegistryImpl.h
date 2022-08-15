@@ -34,6 +34,7 @@
 #include "BlobData.h"
 #include "BlobRegistry.h"
 #include <wtf/HashCountedSet.h>
+#include <wtf/RefCounted.h>
 #include <wtf/RobinHoodHashMap.h>
 #include <wtf/URLHash.h>
 #include <wtf/text/StringHash.h>
@@ -48,7 +49,7 @@ class ThreadSafeDataBuffer;
 struct PolicyContainer;
 
 // BlobRegistryImpl is not thread-safe. It should only be called from main thread.
-class WEBCORE_EXPORT BlobRegistryImpl {
+class WEBCORE_EXPORT BlobRegistryImpl : public RefCounted<BlobRegistryImpl> {
     WTF_MAKE_FAST_ALLOCATED;
 public:
     virtual ~BlobRegistryImpl();
