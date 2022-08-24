@@ -42,21 +42,21 @@ struct PolicyContainer;
 
 class ThreadableBlobRegistry {
 public:
-    static void registerFileBlobURL(const SecurityOrigin&, const URL&, const String& path, const String& replacementPath, const String& contentType);
-    static void registerBlobURL(const SecurityOrigin&, const URL&, Vector<BlobPart>&& blobParts, const String& contentType);
+    static void registerFileBlobURL(const URL&, const SecurityOrigin&, const String& path, const String& replacementPath, const String& contentType);
+    static void registerBlobURL(const URL&, const SecurityOrigin&, Vector<BlobPart>&& blobParts, const String& contentType);
     static void registerBlobURL(const SecurityOrigin&, SecurityOrigin*, PolicyContainer&&, const URL&, const URL& srcURL);
-    static void registerBlobURLOptionallyFileBacked(const SecurityOrigin&, const URL&, const URL& srcURL, const String& fileBackedPath, const String& contentType);
-    static void registerBlobURLForSlice(const SecurityOrigin&, const URL& newURL, const URL& srcURL, long long start, long long end, const String& contentType);
-    static void unregisterBlobURL(const SecurityOrigin&, const URL&);
+    static void registerBlobURLOptionallyFileBacked(const URL&, const SecurityOrigin&, const URL& srcURL, const String& fileBackedPath, const String& contentType);
+    static void registerBlobURLForSlice(const URL& newURL, const SecurityOrigin&, const URL& srcURL, long long start, long long end, const String& contentType);
+    static void unregisterBlobURL(const URL&, const SecurityOrigin&);
 
-    static void registerBlobURLHandle(const SecurityOrigin&, const URL&);
-    static void unregisterBlobURLHandle(const SecurityOrigin&, const URL&);
+    static void registerBlobURLHandle(const URL&, const SecurityOrigin&);
+    static void unregisterBlobURLHandle(const URL&, const SecurityOrigin&);
 
-    WEBCORE_EXPORT static unsigned long long blobSize(const SecurityOrigin&, const URL&);
+    WEBCORE_EXPORT static unsigned long long blobSize(const URL&, const SecurityOrigin&);
 
     // Returns the origin for the given blob URL. This is because we are not able to embed the unique security origin or the origin of file URL
     // in the blob URL.
-    static RefPtr<SecurityOrigin> getCachedOrigin(const SecurityOrigin&, const URL&);
+    static RefPtr<SecurityOrigin> getCachedOrigin(const URL&, const SecurityOrigin&);
 };
 
 } // namespace WebCore

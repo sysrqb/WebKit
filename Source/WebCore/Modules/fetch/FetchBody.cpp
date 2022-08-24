@@ -42,16 +42,16 @@
 
 namespace WebCore {
 
-ExceptionOr<FetchBody> FetchBody::extract(Init&& value, String& contentType)
+ExceptionOr<FetchBody> FetchBody::extract(Init&& value, String& contentType, const SecurityOrigin& topOrigin)
 {
     return WTF::switchOn(value, [&](RefPtr<Blob>& value) mutable -> ExceptionOr<FetchBody> {
         Ref<const Blob> blob = value.releaseNonNull();
         if (!blob->type().isEmpty())
             contentType = blob->type();
-        return FetchBody(WTFMove(blob));
+        return FetchBody(WTFMove(blob), topOrigin);
     }, [&](RefPtr<DOMFormData>& value) mutable -> ExceptionOr<FetchBody> {
         Ref<DOMFormData> domFormData = value.releaseNonNull();
-        auto formData = FormData::createMultiPart(domFormData.get());
+        auto formData = FormData::createMultiPart(domFormData.get(), topOrigin);
         contentType = makeString("multipart/form-data; boundary=", formData->boundary().data());
         return FetchBody(WTFMove(formData));
     }, [&](RefPtr<URLSearchParams>& value) mutable -> ExceptionOr<FetchBody> {
@@ -91,7 +91,7 @@ std::optional<FetchBody> FetchBody::fromFormData(ScriptExecutionContext& context
     if (!url.isNull()) {
         // FIXME: Properly set mime type and size of the blob.
         Ref<const Blob> blob = Blob::deserialize(&context, url, { }, { }, { });
-        return FetchBody { WTFMove(blob) };
+        return FetchBody { WTFMove(blob), context.topOrigin() };
     }
 
     return FetchBody { Ref { formData } };
@@ -249,8 +249,9 @@ RefPtr<FormData> FetchBody::bodyAsFormData() const
     if (isURLSearchParams())
         return FormData::create(PAL::UTF8Encoding().encode(urlSearchParamsBody().toString(), PAL::UnencodableHandling::Entities));
     if (isBlob()) {
+        ASSERT(m_topOrigin);
         auto body = FormData::create();
-        body->appendBlob(blobBody().url());
+        body->appendBlob(blobBody().url(), *m_topOrigin);
         return body;
     }
     if (isArrayBuffer())
@@ -276,8 +277,9 @@ FetchBody::TakenData FetchBody::take()
     }
 
     if (isBlob()) {
+        ASSERT(m_topOrigin);
         auto body = FormData::create();
-        body->appendBlob(blobBody().url());
+        body->appendBlob(blobBody().url(), *m_topOrigin);
         return TakenData { WTFMove(body) };
     }
 

@@ -137,16 +137,16 @@ void ResourceHandle::failureTimerFired()
     ASSERT_NOT_REACHED();
 }
 
-void ResourceHandle::loadResourceSynchronously(NetworkingContext* context, const ResourceRequest& request, StoredCredentialsPolicy storedCredentialsPolicy, SecurityOrigin* sourceOrigin, ResourceError& error, ResourceResponse& response, Vector<uint8_t>& data)
+void ResourceHandle::loadResourceSynchronously(NetworkingContext* context, const ResourceRequest& request, ScriptExecutionEnvironment* scriptContext, StoredCredentialsPolicy storedCredentialsPolicy, ResourceError& error, ResourceResponse& response, Vector<uint8_t>& data)
 {
     if (auto protocol = request.url().protocol().toExistingAtomString(); !protocol.isNull()) {
         if (auto constructor = builtinResourceHandleSynchronousLoaderMap().get(protocol)) {
-            constructor(context, request, storedCredentialsPolicy, error, response, data);
+            constructor(context, request, scriptContext->topOrigin(), storedCredentialsPolicy, error, response, data);
             return;
         }
     }
 
-    platformLoadResourceSynchronously(context, request, storedCredentialsPolicy, sourceOrigin, error, response, data);
+    platformLoadResourceSynchronously(context, request, storedCredentialsPolicy, scriptContext->securityOrigin(), error, response, data);
 }
 
 ResourceHandleClient* ResourceHandle::client() const

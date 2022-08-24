@@ -136,7 +136,7 @@ ExceptionOr<bool> NavigatorBeacon::sendBeacon(Document& document, const String& 
     if (body) {
         options.mode = FetchOptions::Mode::NoCors;
         String mimeType;
-        auto result = FetchBody::extract(WTFMove(body.value()), mimeType);
+        auto result = FetchBody::extract(WTFMove(body.value()), mimeType, document.topOrigin());
         if (result.hasException())
             return result.releaseException();
         auto fetchBody = result.releaseReturnValue();

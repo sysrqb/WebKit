@@ -40,6 +40,7 @@
 #include "ResourceHandle.h"
 #include "ResourceRequest.h"
 #include "ResourceResponse.h"
+#include "SecurityOrigin.h"
 #include <wtf/CompletionHandler.h>
 #include <wtf/FileSystem.h>
 #include <wtf/MainThread.h>
@@ -52,14 +53,14 @@ namespace WebCore {
 
 BlobRegistryImpl::~BlobRegistryImpl() = default;
 
-static Ref<ResourceHandle> createBlobResourceHandle(const ResourceRequest& request, ResourceHandleClient* client)
+static Ref<ResourceHandle> createBlobResourceHandle(const ResourceRequest& request, const SecurityOrigin& topOrigin, ResourceHandleClient* client)
 {
-    return blobRegistry().blobRegistryImpl()->createResourceHandle(request, client);
+    return blobRegistry()->blobRegistryImpl()->createResourceHandle(request, topOrigin, client);
 }
 
-static void loadBlobResourceSynchronously(NetworkingContext*, const ResourceRequest& request, StoredCredentialsPolicy, ResourceError& error, ResourceResponse& response, Vector<uint8_t>& data)
+static void loadBlobResourceSynchronously(NetworkingContext*, const ResourceRequest& request, const SecurityOrigin& topOrigin, StoredCredentialsPolicy, ResourceError& error, ResourceResponse& response, Vector<uint8_t>& data)
 {
-    auto* blobData = blobRegistry().blobRegistryImpl()->getBlobDataFromURL(request.url());
+    auto* blobData = blobRegistry()->blobRegistryImpl()->getBlobDataFromURL(request.url(), topOrigin);
     BlobResourceHandle::loadResourceSynchronously(blobData, request, error, response, data);
 }
 
@@ -74,9 +75,9 @@ static void registerBlobResourceHandleConstructor()
     }
 }
 
-Ref<ResourceHandle> BlobRegistryImpl::createResourceHandle(const ResourceRequest& request, ResourceHandleClient* client)
+Ref<ResourceHandle> BlobRegistryImpl::createResourceHandle(const ResourceRequest& request, const SecurityOrigin& topOrigin, ResourceHandleClient* client)
 {
-    auto handle = BlobResourceHandle::createAsync(getBlobDataFromURL(request.url()), request, client);
+    auto handle = BlobResourceHandle::createAsync(getBlobDataFromURL(request.url(), topOrigin), request, client);
     handle->start();
     return handle;
 }
@@ -110,17 +111,17 @@ void BlobRegistryImpl::appendStorageItems(BlobData* blobData, const BlobDataItem
     ASSERT(!length);
 }
 
-void BlobRegistryImpl::registerFileBlobURL(const URL& url, Ref<BlobDataFileReference>&& file, const String& contentType)
+void BlobRegistryImpl::registerFileBlobURL(const URL& url, const SecurityOrigin& topOrigin, Ref<BlobDataFileReference>&& file, const String& contentType)
 {
     ASSERT(isMainThread());
     registerBlobResourceHandleConstructor();
 
     auto blobData = BlobData::create(contentType);
     blobData->appendFile(WTFMove(file));
-    addBlobData(url.string(), WTFMove(blobData));
+    addBlobData(url.string(), topOrigin, WTFMove(blobData));
 }
 
-void BlobRegistryImpl::registerBlobURL(const URL& url, Vector<BlobPart>&& blobParts, const String& contentType)
+void BlobRegistryImpl::registerBlobURL(const URL& url, const SecurityOrigin& topOrigin, Vector<BlobPart>&& blobParts, const String& contentType)
 {
     ASSERT(isMainThread());
     registerBlobResourceHandleConstructor();
@@ -142,34 +143,38 @@ void BlobRegistryImpl::registerBlobURL(const URL& url, Vector<BlobPart>&& blobPa
             break;
         }
         case BlobPart::Type::Blob: {
-            if (auto blob = m_blobs.get(part.url().string()))
-                blobData->m_items.appendVector(blob->items());
-            break;
+            auto it = m_blobs.find(topOrigin);
+            if (it != m_blobs.end()) {
+                auto& urlMap = it->value;
+                if (auto blob = urlMap.get(part.url().string()))
+                    blobData->m_items.appendVector(blob->items());
+                break;
+            }
         }
         }
     }
 
-    addBlobData(url.string(), WTFMove(blobData));
+    addBlobData(url.string(), topOrigin, WTFMove(blobData));
 }
 
-void BlobRegistryImpl::registerBlobURL(const URL& url, const URL& srcURL, const PolicyContainer& policyContainer)
+void BlobRegistryImpl::registerBlobURL(const URL& url, const SecurityOrigin& topOrigin, const URL& srcURL, const PolicyContainer& policyContainer)
 {
-    registerBlobURLOptionallyFileBacked(url, srcURL, nullptr, { }, policyContainer);
+    registerBlobURLOptionallyFileBacked(url, topOrigin, srcURL, nullptr, { }, policyContainer);
 }
 
-void BlobRegistryImpl::registerBlobURLOptionallyFileBacked(const URL& url, const URL& srcURL, RefPtr<BlobDataFileReference>&& file, const String& contentType, const PolicyContainer& policyContainer)
+void BlobRegistryImpl::registerBlobURLOptionallyFileBacked(const URL& url, const SecurityOrigin& topOrigin, const URL& srcURL, RefPtr<BlobDataFileReference>&& file, const String& contentType, const PolicyContainer& policyContainer)
 {
     ASSERT(isMainThread());
     registerBlobResourceHandleConstructor();
 
-    BlobData* src = getBlobDataFromURL(srcURL);
+    BlobData* src = getBlobDataFromURL(srcURL, topOrigin);
     if (src) {
         if (src->policyContainer() == policyContainer)
-            addBlobData(url.string(), src);
+            addBlobData(url.string(), topOrigin, src);
         else {
             auto clone = src->clone();
             clone->setPolicyContainer(policyContainer);
-            addBlobData(url.string(), WTFMove(clone));
+            addBlobData(url.string(), topOrigin, WTFMove(clone));
         }
         return;
     }
@@ -181,17 +186,17 @@ void BlobRegistryImpl::registerBlobURLOptionallyFileBacked(const URL& url, const
     backingFile->appendFile(file.releaseNonNull());
     backingFile->setPolicyContainer(policyContainer);
 
-    addBlobData(url.string(), WTFMove(backingFile));
+    addBlobData(url.string(), topOrigin, WTFMove(backingFile));
 }
 
-void BlobRegistryImpl::registerBlobURLForSlice(const URL& url, const URL& srcURL, long long start, long long end, const String& contentType)
+void BlobRegistryImpl::registerBlobURLForSlice(const URL& url, const SecurityOrigin& topOrigin, const URL& srcURL, long long start, long long end, const String& contentType)
 {
     ASSERT(isMainThread());
-    BlobData* originalData = getBlobDataFromURL(srcURL);
+    BlobData* originalData = getBlobDataFromURL(srcURL, topOrigin);
     if (!originalData)
         return;
 
-    unsigned long long originalSize = blobSize(srcURL);
+    unsigned long long originalSize = blobSize(srcURL, topOrigin);
 
     // Convert the negative value that is used to select from the end.
     if (start < 0)
@@ -217,28 +222,41 @@ void BlobRegistryImpl::registerBlobURLForSlice(const URL& url, const URL& srcURL
 
     appendStorageItems(newData.ptr(), originalData->items(), start, newLength);
 
-    addBlobData(url.string(), WTFMove(newData));
+    addBlobData(url.string(), topOrigin, WTFMove(newData));
 }
 
-void BlobRegistryImpl::unregisterBlobURL(const URL& url)
+void BlobRegistryImpl::unregisterBlobURL(const URL& url, const SecurityOrigin& topOrigin)
 {
     ASSERT(isMainThread());
-    if (m_blobReferences.remove(url.string()))
-        m_blobs.remove(url.string());
+    auto key = std::make_pair(topOrigin, url.string());
+    if (m_blobReferences.remove(key)) {
+    //if (m_blobReferences.remove({ topOrigin, url.string() })) {
+        auto it = m_blobs.find(topOrigin);
+        if (it != m_blobs.end()) {
+            auto& urlMap = it->value;
+            urlMap.remove(url.string());
+            if (urlMap.size())
+                m_blobs.remove(topOrigin);
+        }
+    }
 }
 
-BlobData* BlobRegistryImpl::getBlobDataFromURL(const URL& url) const
+BlobData* BlobRegistryImpl::getBlobDataFromURL(const URL& url, const SecurityOrigin& topOrigin) const
 {
     ASSERT(isMainThread());
+    auto it = m_blobs.find(topOrigin);
+    if (it == m_blobs.end())
+       return nullptr;
+    auto& urlMap = it->value;
     if (url.hasFragmentIdentifier())
-        return m_blobs.get<StringViewHashTranslator>(url.viewWithoutFragmentIdentifier());
-    return m_blobs.get(url.string());
+        return urlMap.get<StringViewHashTranslator>(url.viewWithoutFragmentIdentifier());
+    return urlMap.get(url.string());
 }
 
-unsigned long long BlobRegistryImpl::blobSize(const URL& url)
+unsigned long long BlobRegistryImpl::blobSize(const URL& url, const SecurityOrigin& topOrigin)
 {
     ASSERT(isMainThread());
-    BlobData* data = getBlobDataFromURL(url);
+    BlobData* data = getBlobDataFromURL(url, topOrigin);
     if (!data)
         return 0;
 
@@ -255,13 +273,13 @@ static WorkQueue& blobUtilityQueue()
     return queue;
 }
 
-bool BlobRegistryImpl::populateBlobsForFileWriting(const Vector<String>& blobURLs, Vector<BlobForFileWriting>& blobsForWriting)
+bool BlobRegistryImpl::populateBlobsForFileWriting(const Vector<String>& blobURLs, const SecurityOrigin& topOrigin, Vector<BlobForFileWriting>& blobsForWriting)
 {
     for (auto& url : blobURLs) {
         blobsForWriting.append({ });
         blobsForWriting.last().blobURL = url.isolatedCopy();
 
-        auto* blobData = getBlobDataFromURL({ { }, url });
+        auto* blobData = getBlobDataFromURL({ { }, url }, topOrigin);
         if (!blobData)
             return false;
 
@@ -310,10 +328,10 @@ static bool writeFilePathsOrDataBuffersToFile(const Vector<std::pair<String, Thr
     return true;
 }
 
-void BlobRegistryImpl::writeBlobsToTemporaryFilesForIndexedDB(const Vector<String>& blobURLs, CompletionHandler<void(Vector<String>&& filePaths)>&& completionHandler)
+void BlobRegistryImpl::writeBlobsToTemporaryFilesForIndexedDB(const Vector<String>& blobURLs, const SecurityOrigin& topOrigin, CompletionHandler<void(Vector<String>&& filePaths)>&& completionHandler)
 {
     Vector<BlobForFileWriting> blobsForWriting;
-    if (!populateBlobsForFileWriting(blobURLs, blobsForWriting)) {
+    if (!populateBlobsForFileWriting(blobURLs, topOrigin, blobsForWriting)) {
         completionHandler({ });
         return;
     }
@@ -336,10 +354,10 @@ void BlobRegistryImpl::writeBlobsToTemporaryFilesForIndexedDB(const Vector<Strin
     });
 }
 
-void BlobRegistryImpl::writeBlobToFilePath(const URL& blobURL, const String& path, Function<void(bool success)>&& completionHandler)
+void BlobRegistryImpl::writeBlobToFilePath(const URL& blobURL, const SecurityOrigin& topOrigin, const String& path, Function<void(bool success)>&& completionHandler)
 {
     Vector<BlobForFileWriting> blobsForWriting;
-    if (!populateBlobsForFileWriting({ blobURL.string() }, blobsForWriting) || blobsForWriting.size() != 1) {
+    if (!populateBlobsForFileWriting({ blobURL.string() }, topOrigin, blobsForWriting) || blobsForWriting.size() != 1) {
         completionHandler(false);
         return;
     }
@@ -352,9 +370,9 @@ void BlobRegistryImpl::writeBlobToFilePath(const URL& blobURL, const String& pat
     });
 }
 
-Vector<RefPtr<BlobDataFileReference>> BlobRegistryImpl::filesInBlob(const URL& url) const
+Vector<RefPtr<BlobDataFileReference>> BlobRegistryImpl::filesInBlob(const URL& url, const SecurityOrigin& topOrigin) const
 {
-    auto* blobData = getBlobDataFromURL(url);
+    auto* blobData = getBlobDataFromURL(url, topOrigin);
     if (!blobData)
         return { };
 
@@ -367,25 +385,63 @@ Vector<RefPtr<BlobDataFileReference>> BlobRegistryImpl::filesInBlob(const URL& u
     return result;
 }
 
-void BlobRegistryImpl::addBlobData(const String& url, RefPtr<BlobData>&& blobData)
+void BlobRegistryImpl::addBlobData(const String& url, const SecurityOrigin& topOrigin, RefPtr<BlobData>&& blobData)
 {
-    auto addResult = m_blobs.set(url, WTFMove(blobData));
+    auto addResult = m_blobs.add(topOrigin, URLBlobMap { }).iterator->value.set(url, WTFMove(blobData));
     if (addResult.isNewEntry)
-        m_blobReferences.add(url);
+        m_blobReferences.add({topOrigin, url });
 }
 
-void BlobRegistryImpl::registerBlobURLHandle(const URL& url)
+void BlobRegistryImpl::registerBlobURLHandle(const URL& url, const SecurityOrigin& topOrigin)
 {
     auto urlKey = url.stringWithoutFragmentIdentifier();
-    if (m_blobs.contains(urlKey))
-        m_blobReferences.add(urlKey);
+    auto it = m_blobs.find(topOrigin);
+    if (it == m_blobs.end())
+        return;
+    auto& urlMap = it->value;
+    if (urlMap.contains(urlKey))
+        m_blobReferences.add({ topOrigin, urlKey });
 }
 
-void BlobRegistryImpl::unregisterBlobURLHandle(const URL& url)
+void BlobRegistryImpl::unregisterBlobURLHandle(const URL& url, const SecurityOrigin& topOrigin)
 {
+    auto it = m_blobs.find(topOrigin);
+    if (it == m_blobs.end())
+        return;
+    auto& urlMap = it->value;
     auto urlKey = url.stringWithoutFragmentIdentifier();
-    if (m_blobReferences.remove(urlKey))
-        m_blobs.remove(urlKey);
+    if (m_blobReferences.remove({ topOrigin, urlKey }))
+        urlMap.remove(urlKey);
 }
+
+//struct StringViewAndSecurityOriginHashTranslator {
+//    static unsigned hash(const std::pair<StringView, SecurityOrigin>& p)
+//    {
+//        return p.hash();
+//    }
+//    static bool equal(const std::pair<StringView, SecurityOrigin>& a, std::pair<StringView, SecurityOrigin>& b)
+//    {
+//        return a.first == b.first && a.second == b.second;
+//    }
+//
+//    static void translate(std::pair<StringView, SecurityOrigin>& location, std::pair<StringView, SecurityOrigin>& literal, unsigned hash)
+//    {
+//        // FIXME where do we store the hash?
+//        location = literal;
+//        location.impl()->setHash(hash);
+//    }
+//};
+//
+//struct SecurityOriginAndURLKey {
+//    static unsigned hash(const std::pair<StringView, SecurityOrigin>& p)
+//    {
+//        return pairIntHash(p.first.hash(), DefaultHash<U>::hash(p.second));
+//    }
+//    static bool equal(const std::pair<T, U>& a, const std::pair<T, U>& b)
+//    {
+//        return a.first == b.first && a.second == b.second;
+//    }
+//    static constexpr bool safeToCompareToEmptyOrDeleted = DefaultHash<T>::safeToCompareToEmptyOrDeleted && DefaultHash<U>::safeToCompareToEmptyOrDeleted;
+//};
 
 } // namespace WebCore

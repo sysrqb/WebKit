@@ -104,9 +104,9 @@ MediaStrategy* WebPlatformStrategies::createMediaStrategy()
     return new WebMediaStrategy;
 }
 
-BlobRegistry* WebPlatformStrategies::createBlobRegistry()
+BlobRegistry* WebPlatformStrategies::createBlobRegistry(const WebCore::SecurityOrigin& topOrigin)
 {
-    return new BlobRegistryProxy;
+    return new BlobRegistryProxy { topOrigin };
 }
 
 static std::optional<PageIdentifier> pageIdentifier(const PasteboardContext* context)

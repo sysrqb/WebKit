@@ -45,8 +45,10 @@ namespace WebCore {
 class ResourceHandle;
 class ResourceHandleClient;
 class ResourceRequest;
+class SecurityOrigin;
 class ThreadSafeDataBuffer;
 struct PolicyContainer;
+struct SecurityOriginAndURLKey;
 
 // BlobRegistryImpl is not thread-safe. It should only be called from main thread.
 class WEBCORE_EXPORT BlobRegistryImpl : public RefCounted<BlobRegistryImpl> {
@@ -54,40 +56,41 @@ class WEBCORE_EXPORT BlobRegistryImpl : public RefCounted<BlobRegistryImpl> {
 public:
     virtual ~BlobRegistryImpl();
 
-    BlobData* getBlobDataFromURL(const URL&) const;
+    BlobData* getBlobDataFromURL(const URL&, const SecurityOrigin&) const;
 
-    Ref<ResourceHandle> createResourceHandle(const ResourceRequest&, ResourceHandleClient*);
-    void writeBlobToFilePath(const URL& blobURL, const String& path, Function<void(bool success)>&& completionHandler);
+    Ref<ResourceHandle> createResourceHandle(const ResourceRequest&, const SecurityOrigin&, ResourceHandleClient*);
+    void writeBlobToFilePath(const URL& blobURL, const SecurityOrigin&, const String& path, Function<void(bool success)>&& completionHandler);
 
     void appendStorageItems(BlobData*, const BlobDataItemList&, long long offset, long long length);
 
-    void registerFileBlobURL(const URL&, Ref<BlobDataFileReference>&&, const String& contentType);
-    void registerBlobURL(const URL&, Vector<BlobPart>&&, const String& contentType);
-    void registerBlobURL(const URL&, const URL& srcURL, const PolicyContainer&);
-    void registerBlobURLOptionallyFileBacked(const URL&, const URL& srcURL, RefPtr<BlobDataFileReference>&&, const String& contentType, const PolicyContainer&);
-    void registerBlobURLForSlice(const URL&, const URL& srcURL, long long start, long long end, const String& contentType);
-    void unregisterBlobURL(const URL&);
+    void registerFileBlobURL(const URL&, const SecurityOrigin&, Ref<BlobDataFileReference>&&, const String& contentType);
+    void registerBlobURL(const URL&, const SecurityOrigin&, Vector<BlobPart>&&, const String& contentType);
+    void registerBlobURL(const URL&, const SecurityOrigin&, const URL& srcURL, const PolicyContainer&);
+    void registerBlobURLOptionallyFileBacked(const URL&, const SecurityOrigin&, const URL& srcURL, RefPtr<BlobDataFileReference>&&, const String& contentType, const PolicyContainer&);
+    void registerBlobURLForSlice(const URL&, const SecurityOrigin&, const URL& srcURL, long long start, long long end, const String& contentType);
+    void unregisterBlobURL(const URL&, const SecurityOrigin&);
 
-    void registerBlobURLHandle(const URL&);
-    void unregisterBlobURLHandle(const URL&);
+    void registerBlobURLHandle(const URL&, const SecurityOrigin&);
+    void unregisterBlobURLHandle(const URL&, const SecurityOrigin&);
 
-    unsigned long long blobSize(const URL&);
+    unsigned long long blobSize(const URL&, const SecurityOrigin&);
 
-    void writeBlobsToTemporaryFilesForIndexedDB(const Vector<String>& blobURLs, CompletionHandler<void(Vector<String>&& filePaths)>&&);
+    void writeBlobsToTemporaryFilesForIndexedDB(const Vector<String>&, const SecurityOrigin&, CompletionHandler<void(Vector<String>&&)>&&);
 
     struct BlobForFileWriting {
         String blobURL;
         Vector<std::pair<String, ThreadSafeDataBuffer>> filePathsOrDataBuffers;
     };
 
-    bool populateBlobsForFileWriting(const Vector<String>& blobURLs, Vector<BlobForFileWriting>&);
-    Vector<RefPtr<BlobDataFileReference>> filesInBlob(const URL&) const;
+    bool populateBlobsForFileWriting(const Vector<String>& blobURLs, const SecurityOrigin&, Vector<BlobForFileWriting>&);
+    Vector<RefPtr<BlobDataFileReference>> filesInBlob(const URL&, const SecurityOrigin&) const;
 
 private:
-    void addBlobData(const String& url, RefPtr<BlobData>&&);
+    void addBlobData(const String& url, const SecurityOrigin&, RefPtr<BlobData>&&);
 
-    HashCountedSet<String> m_blobReferences;
-    MemoryCompactRobinHoodHashMap<String, RefPtr<BlobData>> m_blobs;
+    using URLBlobMap = MemoryCompactRobinHoodHashMap<String, RefPtr<BlobData>>;
+    HashCountedSet<std::pair<const SecurityOrigin&, String&>> m_blobReferences;
+    HashMap<SecurityOrigin, URLBlobMap> m_blobs;
 };
 
 } // namespace WebCore

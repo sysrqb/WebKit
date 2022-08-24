@@ -106,7 +106,7 @@ ExceptionOr<Ref<FetchResponse>> FetchResponse::create(ScriptExecutionContext& co
         String contentType;
 
         // 8.3 Set r’s response’s body and Content-Type to the result of extracting body.
-        auto result = FetchBody::extract(WTFMove(*body), contentType);
+        auto result = FetchBody::extract(WTFMove(*body), contentType, context.topOrigin());
         if (result.hasException())
             return result.releaseException();
         extractedBody = result.releaseReturnValue();

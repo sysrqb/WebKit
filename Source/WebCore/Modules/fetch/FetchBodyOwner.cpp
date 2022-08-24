@@ -150,7 +150,7 @@ void FetchBodyOwner::cloneBody(FetchBodyOwner& owner)
 
 ExceptionOr<void> FetchBodyOwner::extractBody(FetchBody::Init&& value)
 {
-    auto result = FetchBody::extract(WTFMove(value), m_contentType);
+    auto result = FetchBody::extract(WTFMove(value), m_contentType, scriptExecutionContext()->topOrigin());
     if (result.hasException())
         return result.releaseException();
     m_body = result.releaseReturnValue();

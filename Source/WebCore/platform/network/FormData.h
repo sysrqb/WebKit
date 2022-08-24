@@ -20,6 +20,7 @@
 #pragma once
 
 #include "BlobData.h"
+#include "SecurityOrigin.h"
 #include <variant>
 #include <wtf/Forward.h>
 #include <wtf/RefCounted.h>
@@ -50,10 +51,10 @@ struct FormDataElement {
         : data(WTFMove(array)) { }
     FormDataElement(const String& filename, int64_t fileStart, int64_t fileLength, std::optional<WallTime> expectedFileModificationTime)
         : data(EncodedFileData { filename, fileStart, fileLength, expectedFileModificationTime }) { }
-    explicit FormDataElement(const URL& blobURL)
-        : data(EncodedBlobData { blobURL }) { }
+    explicit FormDataElement(const URL& blobURL, const SecurityOrigin& topOrigin)
+        : data(EncodedBlobData { blobURL, topOrigin }) { }
 
-    uint64_t lengthInBytes(const Function<uint64_t(const URL&)>&) const;
+    uint64_t lengthInBytes(const Function<uint64_t(const URL&, const SecurityOrigin&)>&) const;
     uint64_t lengthInBytes() const;
 
     FormDataElement isolatedCopy() const;
@@ -129,23 +130,29 @@ struct FormDataElement {
     
     struct EncodedBlobData {
         URL url;
+        Ref<const SecurityOrigin> topOrigin;
 
         bool operator==(const EncodedBlobData& other) const
         {
-            return url == other.url;
+            return url == other.url && topOrigin->equal(other.topOrigin.ptr());
         }
         template<typename Encoder> void encode(Encoder& encoder) const
         {
+            // FIXME ??
             encoder << url;
+            encoder << topOrigin.get();
         }
         template<typename Decoder> static std::optional<EncodedBlobData> decode(Decoder& decoder)
         {
+            // FIXME ??
             std::optional<URL> url;
+            std::optional<Ref<SecurityOrigin>> topOrigin;
             decoder >> url;
-            if (!url)
+            decoder >> topOrigin;
+            if (!url || !topOrigin)
                 return std::nullopt;
 
-            return {{ WTFMove(*url) }};
+            return {{ WTFMove(*url), WTFMove(*topOrigin) }};
         }
     };
     
@@ -200,7 +207,7 @@ public:
     static Ref<FormData> create(const Vector<char>&);
     static Ref<FormData> create(const Vector<uint8_t>&);
     static Ref<FormData> create(const DOMFormData&, EncodingType = FormURLEncoded);
-    static Ref<FormData> createMultiPart(const DOMFormData&);
+    static Ref<FormData> createMultiPart(const DOMFormData&, const SecurityOrigin&);
     WEBCORE_EXPORT ~FormData();
 
     // FIXME: Both these functions perform a deep copy of m_elements, but differ in handling of other data members.
@@ -216,7 +223,7 @@ public:
     WEBCORE_EXPORT void appendData(const void* data, size_t);
     void appendFile(const String& filePath);
     WEBCORE_EXPORT void appendFileRange(const String& filename, long long start, long long length, std::optional<WallTime> expectedModificationTime);
-    WEBCORE_EXPORT void appendBlob(const URL& blobURL);
+    WEBCORE_EXPORT void appendBlob(const URL& blobURL, const SecurityOrigin&);
 
     WEBCORE_EXPORT Vector<uint8_t> flatten() const; // omits files
     String flattenToString() const; // omits files
@@ -261,9 +268,9 @@ private:
     FormData();
     FormData(const FormData&);
 
-    void appendMultiPartFileValue(const File&, Vector<char>& header, PAL::TextEncoding&);
+    void appendMultiPartFileValue(const File&, Vector<char>& header, PAL::TextEncoding&, const SecurityOrigin&);
     void appendMultiPartStringValue(const String&, Vector<char>& header, PAL::TextEncoding&);
-    void appendMultiPartKeyValuePairItems(const DOMFormData&);
+    void appendMultiPartKeyValuePairItems(const DOMFormData&, const SecurityOrigin&);
     void appendNonMultiPartKeyValuePairItems(const DOMFormData&, EncodingType);
 
     Vector<FormDataElement> m_elements;

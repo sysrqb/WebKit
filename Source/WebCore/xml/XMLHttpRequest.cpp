@@ -536,7 +536,7 @@ ExceptionOr<void> XMLHttpRequest::send(Blob& body)
         }
 
         m_requestEntityBody = FormData::create();
-        m_requestEntityBody->appendBlob(body.url());
+        m_requestEntityBody->appendBlob(body.url(), scriptExecutionContext()->topOrigin());
     }
 
     return createRequest();
@@ -555,7 +555,7 @@ ExceptionOr<void> XMLHttpRequest::send(DOMFormData& body)
         return WTFMove(result.value());
 
     if (m_method != "GET"_s && m_method != "HEAD"_s) {
-        m_requestEntityBody = FormData::createMultiPart(body);
+        m_requestEntityBody = FormData::createMultiPart(body, scriptExecutionContext()->topOrigin());
         if (!m_requestHeaders.contains(HTTPHeaderName::ContentType))
             m_requestHeaders.set(HTTPHeaderName::ContentType, makeString("multipart/form-data; boundary=", m_requestEntityBody->boundary().data()));
     }

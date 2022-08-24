@@ -52,7 +52,7 @@
 namespace WebCore {
 
 typedef HashMap<String, RefPtr<SecurityOrigin>> BlobUrlOriginMap;
-typedef HashMap<const SecurityOriginData, BlobUrlOriginMap> PartitionedBlobUrlOriginMap;
+typedef HashMap<const SecurityOrigin, BlobUrlOriginMap> PartitionedBlobUrlOriginMap;
 
 static ThreadSpecific<PartitionedBlobUrlOriginMap>& originMap()
 {
@@ -65,7 +65,7 @@ static ThreadSpecific<PartitionedBlobUrlOriginMap>& originMap()
     return *map;
 }
 
-void ThreadableBlobRegistry::registerFileBlobURL(const SecurityOrigin& topOrigin, const URL& url, const String& path, const String& replacementPath, const String& contentType)
+void ThreadableBlobRegistry::registerFileBlobURL(const URL& url, const SecurityOrigin& topOrigin, const String& path, const String& replacementPath, const String& contentType)
 {
     String effectivePath = !replacementPath.isNull() ? replacementPath : path;
 
@@ -79,7 +79,7 @@ void ThreadableBlobRegistry::registerFileBlobURL(const SecurityOrigin& topOrigin
     });
 }
 
-void ThreadableBlobRegistry::registerBlobURL(const SecurityOrigin& topOrigin, const URL& url, Vector<BlobPart>&& blobParts, const String& contentType)
+void ThreadableBlobRegistry::registerBlobURL(const URL& url, const SecurityOrigin& topOrigin, Vector<BlobPart>&& blobParts, const String& contentType)
 {
     if (isMainThread()) {
         blobRegistry(topOrigin.data())->registerBlobURL(url, WTFMove(blobParts), contentType);
@@ -116,7 +116,7 @@ void ThreadableBlobRegistry::registerBlobURL(const SecurityOrigin& topOrigin, Se
     });
 }
 
-void ThreadableBlobRegistry::registerBlobURLOptionallyFileBacked(const SecurityOrigin& topOrigin, const URL& url, const URL& srcURL, const String& fileBackedPath, const String& contentType)
+void ThreadableBlobRegistry::registerBlobURLOptionallyFileBacked(const URL& url, const SecurityOrigin& topOrigin, const URL& srcURL, const String& fileBackedPath, const String& contentType)
 {
     if (isMainThread()) {
         blobRegistry(topOrigin.data())->registerBlobURLOptionallyFileBacked(url, srcURL, BlobDataFileReference::create(fileBackedPath), contentType);
@@ -127,7 +127,7 @@ void ThreadableBlobRegistry::registerBlobURLOptionallyFileBacked(const SecurityO
     });
 }
 
-void ThreadableBlobRegistry::registerBlobURLForSlice(const SecurityOrigin& topOrigin, const URL& newURL, const URL& srcURL, long long start, long long end, const String& contentType)
+void ThreadableBlobRegistry::registerBlobURLForSlice(const URL& newURL, const SecurityOrigin& topOrigin, const URL& srcURL, long long start, long long end, const String& contentType)
 {
     if (isMainThread()) {
         blobRegistry(topOrigin.data())->registerBlobURLForSlice(newURL, srcURL, start, end, contentType);
@@ -139,7 +139,7 @@ void ThreadableBlobRegistry::registerBlobURLForSlice(const SecurityOrigin& topOr
     });
 }
 
-unsigned long long ThreadableBlobRegistry::blobSize(const SecurityOrigin& topOrigin, const URL& url)
+unsigned long long ThreadableBlobRegistry::blobSize(const URL& url, const SecurityOrigin& topOrigin)
 {
     if (isMainThread())
         return blobRegistry(topOrigin.data())->blobSize(url);
@@ -151,7 +151,7 @@ unsigned long long ThreadableBlobRegistry::blobSize(const SecurityOrigin& topOri
     return resultSize;
 }
 
-void ThreadableBlobRegistry::unregisterBlobURL(const SecurityOrigin& topOrigin, const URL& url)
+void ThreadableBlobRegistry::unregisterBlobURL(const URL& url, const SecurityOrigin& topOrigin)
 {
     if (isBlobURLContainsNullOrigin(url) && (auto& partitionedMap = originMap()->get(topOrigin.data())))
         partitionedMap.remove<StringViewHashTranslator>(url.viewWithoutFragmentIdentifier());
@@ -161,21 +161,21 @@ void ThreadableBlobRegistry::unregisterBlobURL(const SecurityOrigin& topOrigin, 
     });
 }
 
-void ThreadableBlobRegistry::registerBlobURLHandle(const SecurityOrigin& topOrigin, const URL& url)
+void ThreadableBlobRegistry::registerBlobURLHandle(const URL& url, const SecurityOrigin& topOrigin)
 {
     ensureOnMainThread([topOrigin = topOrigin.isolatedCopy(), url = url.isolatedCopy()] {
         blobRegistry(topOrigin->data())->registerBlobURLHandle(url);
     });
 }
 
-void ThreadableBlobRegistry::unregisterBlobURLHandle(const SecurityOrigin& topOrigin, const URL& url)
+void ThreadableBlobRegistry::unregisterBlobURLHandle(const URL& url, const SecurityOrigin& topOrigin)
 {
     ensureOnMainThread([topOrigin = topOrigin.isolatedCopy(), url = url.isolatedCopy()] {
         blobRegistry(topOrigin->data())->unregisterBlobURLHandle(url);
     });
 }
 
-RefPtr<SecurityOrigin> ThreadableBlobRegistry::getCachedOrigin(const SecurityOrigin& topOrigin, const URL& url)
+RefPtr<SecurityOrigin> ThreadableBlobRegistry::getCachedOrigin(const URL& url, const SecurityOrigin& topOrigin)
 {
     if (auto& partitionedMap = originMap()->get(topOrigin.data())) {
         if (auto cachedOrigin = partitionedMap.get<StringViewHashTranslator>(url.viewWithoutFragmentIdentifier()))

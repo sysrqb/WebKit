@@ -32,14 +32,14 @@ namespace WebKit {
 class BlobRegistryProxy final : public WebCore::BlobRegistry {
 public:
     BlobRegistryProxy(const SecurityOrigin topOrigin) : WebCore::BlobRegistry(topOrigin) {}
-    void registerFileBlobURL(SecurityOrigin&, const URL&, Ref<WebCore::BlobDataFileReference>&&, const String& path, const String& contentType) final;
-    void registerBlobURL(SecurityOrigin&, const URL&, Vector<WebCore::BlobPart>&&, const String& contentType) final;
-    void registerBlobURL(SecurityOrigin&, const URL&, const URL& srcURL, const WebCore::PolicyContainer&) final;
-    void registerBlobURLOptionallyFileBacked(SecurityOrigin&, const URL&, const URL& srcURL, RefPtr<WebCore::BlobDataFileReference>&&, const String& contentType) final;
-    void unregisterBlobURL(SecurityOrigin&, const URL&) final;
-    void registerBlobURLForSlice(SecurityOrigin&, const URL&, const URL& srcURL, long long start, long long end, const String& contentType) final;
-    unsigned long long blobSize(SecurityOrigin&, const URL&) final;
-    void writeBlobsToTemporaryFilesForIndexedDB(SecurityOrigin&, const Vector<String>& blobURLs, CompletionHandler<void(Vector<String>&& filePaths)>&&) final;
+    void registerFileBlobURL(const URL&, Ref<WebCore::BlobDataFileReference>&&, const String& path, const String& contentType) final;
+    void registerBlobURL(const URL&, Vector<WebCore::BlobPart>&&, const String& contentType) final;
+    void registerBlobURL(const URL&, const URL& srcURL, const WebCore::PolicyContainer&) final;
+    void registerBlobURLOptionallyFileBacked(const URL&, const URL& srcURL, RefPtr<WebCore::BlobDataFileReference>&&, const String& contentType) final;
+    void unregisterBlobURL(const URL&) final;
+    void registerBlobURLForSlice(const URL&, const URL& srcURL, long long start, long long end, const String& contentType) final;
+    unsigned long long blobSize(const URL&) final;
+    void writeBlobsToTemporaryFilesForIndexedDB(const Vector<String>& blobURLs, CompletionHandler<void(Vector<String>&& filePaths)>&&) final;
     void registerBlobURLHandle(const URL&) final;
     void unregisterBlobURLHandle(const URL&) final;
 };

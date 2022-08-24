@@ -29,6 +29,8 @@
 #include <WebCore/PasteboardStrategy.h>
 #include <WebCore/PlatformStrategies.h>
 
+class WebCore::SecurityOrigin;
+
 namespace WebKit {
 
 class WebPlatformStrategies : public WebCore::PlatformStrategies, private WebCore::PasteboardStrategy {
@@ -43,7 +45,7 @@ private:
     WebCore::LoaderStrategy* createLoaderStrategy() override;
     WebCore::PasteboardStrategy* createPasteboardStrategy() override;
     WebCore::MediaStrategy* createMediaStrategy() override;
-    WebCore::BlobRegistry* createBlobRegistry() override;
+    WebCore::BlobRegistry* createBlobRegistry(const WebCore::SecurityOrigin&) override;
 
     // WebCore::PasteboardStrategy
 #if PLATFORM(IOS_FAMILY)

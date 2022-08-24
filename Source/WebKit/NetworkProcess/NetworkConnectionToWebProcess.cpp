@@ -435,10 +435,10 @@ void NetworkConnectionToWebProcess::didClose(IPC::Connection& connection)
     if (auto* networkSession = this->networkSession()) {
         networkSession->broadcastChannelRegistry().removeConnection(connection);
         for (auto& url : m_blobURLs)
-            networkSession->blobRegistry().unregisterBlobURL(url);
+            networkSession->blobRegistry().unregisterBlobURL(url, topOrigin);
         for (auto& [url, count] : m_blobURLHandles) {
             for (unsigned i = 0; i < count; ++i)
-                networkSession->blobRegistry().unregisterBlobURLHandle(url);
+                networkSession->blobRegistry().unregisterBlobURLHandle(url, topOrigin);
         }
     }
 
@@ -903,7 +903,7 @@ void NetworkConnectionToWebProcess::registerFileBlobURL(const SecurityOrigin& to
         return;
 
     m_blobURLs.add(url);
-    session->blobRegistry(topOrigin).registerFileBlobURL(url, BlobDataFileReferenceWithSandboxExtension::create(path, replacementPath, SandboxExtension::create(WTFMove(extensionHandle))), contentType);
+    session->blobRegistry().registerFileBlobURL(url, topOrigin, BlobDataFileReferenceWithSandboxExtension::create(path, replacementPath, SandboxExtension::create(WTFMove(extensionHandle))), contentType);
 }
 
 void NetworkConnectionToWebProcess::registerBlobURL(const SecurityOrigin& topOrigin, const URL& url, Vector<BlobPart>&& blobParts, const String& contentType)
@@ -913,7 +913,7 @@ void NetworkConnectionToWebProcess::registerBlobURL(const SecurityOrigin& topOri
         return;
 
     m_blobURLs.add(url);
-    session->blobRegistry(topOrigin).registerBlobURL(url, WTFMove(blobParts), contentType);
+    session->blobRegistry().registerBlobURL(url, topOrigin, WTFMove(blobParts), contentType);
 }
 
 void NetworkConnectionToWebProcess::registerBlobURLFromURL(const SecurityOrigin& topOrigin, const URL& url, const URL& srcURL, PolicyContainer&& policyContainer)
@@ -923,7 +923,7 @@ void NetworkConnectionToWebProcess::registerBlobURLFromURL(const SecurityOrigin&
         return;
 
     m_blobURLs.add(url);
-    session->blobRegistry(topOrigin).registerBlobURL(url, srcURL, WTFMove(policyContainer));
+    session->blobRegistry().registerBlobURL(url, topOrigin, srcURL, WTFMove(policyContainer));
 }
 
 void NetworkConnectionToWebProcess::registerBlobURLOptionallyFileBacked(const SecurityOrigin& topOrigin, const URL& url, const URL& srcURL, const String& fileBackedPath, const String& contentType)
@@ -935,7 +935,7 @@ void NetworkConnectionToWebProcess::registerBlobURLOptionallyFileBacked(const Se
         return;
 
     m_blobURLs.add(url);
-    session->blobRegistry(topOrigin).registerBlobURLOptionallyFileBacked(url, srcURL, BlobDataFileReferenceWithSandboxExtension::create(fileBackedPath), contentType, { });
+    session->blobRegistry().registerBlobURLOptionallyFileBacked(url, topOrigin, srcURL, BlobDataFileReferenceWithSandboxExtension::create(fileBackedPath), contentType, { });
 }
 
 void NetworkConnectionToWebProcess::registerBlobURLForSlice(const SecurityOrigin& topOrigin, const URL& url, const URL& srcURL, int64_t start, int64_t end, const String& contentType)
@@ -945,7 +945,7 @@ void NetworkConnectionToWebProcess::registerBlobURLForSlice(const SecurityOrigin
         return;
 
     m_blobURLs.add(url);
-    session->blobRegistry(topOrigin).registerBlobURLForSlice(url, srcURL, start, end, contentType);
+    session->blobRegistry().registerBlobURLForSlice(url, topOrigin, srcURL, start, end, contentType);
 }
 
 void NetworkConnectionToWebProcess::unregisterBlobURL(const SecurityOrigin& topOrigin, const URL& url)
@@ -955,7 +955,7 @@ void NetworkConnectionToWebProcess::unregisterBlobURL(const SecurityOrigin& topO
         return;
 
     m_blobURLs.remove(url);
-    session->blobRegistry(topOrigin).unregisterBlobURL(url);
+    session->blobRegistry().unregisterBlobURL(url, topOrigin);
 }
 
 void NetworkConnectionToWebProcess::registerBlobURLHandle(const SecurityOrigin& topOrigin, const URL& url)
@@ -965,7 +965,7 @@ void NetworkConnectionToWebProcess::registerBlobURLHandle(const SecurityOrigin& 
         return;
 
     m_blobURLHandles.add(url);
-    session->blobRegistry(topOrigin).registerBlobURLHandle(url);
+    session->blobRegistry().registerBlobURLHandle(url, topOrigin);
 }
 
 void NetworkConnectionToWebProcess::unregisterBlobURLHandle(const SecurityOrigin& topOrigin, const URL& url)
@@ -975,13 +975,13 @@ void NetworkConnectionToWebProcess::unregisterBlobURLHandle(const SecurityOrigin
         return;
 
     m_blobURLHandles.remove(url);
-    session->blobRegistry(topOrigin).unregisterBlobURLHandle(url);
+    session->blobRegistry().unregisterBlobURLHandle(url, topOrigin);
 }
 
 void NetworkConnectionToWebProcess::blobSize(const SecurityOrigin& topOrigin, const URL& url, CompletionHandler<void(uint64_t)>&& completionHandler)
 {
     auto* session = networkSession();
-    completionHandler(session ? session->blobRegistry(topOrigin).blobSize(url) : 0);
+    completionHandler(session ? session->blobRegistry().blobSize(url, topOrigin) : 0);
 }
 
 void NetworkConnectionToWebProcess::writeBlobsToTemporaryFilesForIndexedDB(const SecurityOrigin& topOrigin, const Vector<String>& blobURLs, CompletionHandler<void(Vector<String>&&)>&& completionHandler)
@@ -992,12 +992,12 @@ void NetworkConnectionToWebProcess::writeBlobsToTemporaryFilesForIndexedDB(const
 
     Vector<RefPtr<BlobDataFileReference>> fileReferences;
     for (auto& url : blobURLs)
-        fileReferences.appendVector(session->blobRegistry(topOrigin).filesInBlob({ { }, url }));
+        fileReferences.appendVector(session->blobRegistry().filesInBlob({ { }, url }, topOrigin));
 
     for (auto& file : fileReferences)
         file->prepareForFileAccess();
 
-    session->blobRegistry(topOrigin).writeBlobsToTemporaryFilesForIndexedDB(blobURLs, [this, &topOrigin, protectedThis = Ref { *this }, fileReferences = WTFMove(fileReferences), completionHandler = WTFMove(completionHandler)](auto&& filePaths) mutable {
+    session->blobRegistry().writeBlobsToTemporaryFilesForIndexedDB(blobURLs, topOrigin, [this, &topOrigin, protectedThis = Ref { *this }, fileReferences = WTFMove(fileReferences), completionHandler = WTFMove(completionHandler)](auto&& filePaths) mutable {
         for (auto& file : fileReferences)
             file->revokeFileAccess();
 

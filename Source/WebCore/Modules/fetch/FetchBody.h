@@ -54,7 +54,7 @@ public:
     void consumeAsStream(FetchBodyOwner&, FetchBodySource&);
 
     using Init = std::variant<RefPtr<Blob>, RefPtr<ArrayBufferView>, RefPtr<ArrayBuffer>, RefPtr<DOMFormData>, RefPtr<URLSearchParams>, RefPtr<ReadableStream>, String>;
-    static ExceptionOr<FetchBody> extract(Init&&, String&);
+    static ExceptionOr<FetchBody> extract(Init&&, String&, const SecurityOrigin&);
     FetchBody() = default;
 
     WEBCORE_EXPORT static std::optional<FetchBody> fromFormData(ScriptExecutionContext&, FormData&);
@@ -89,7 +89,7 @@ public:
     bool isReadableStream() const { return std::holds_alternative<Ref<ReadableStream>>(m_data); }
 
 private:
-    explicit FetchBody(Ref<const Blob>&& data) : m_data(WTFMove(data)) { }
+    explicit FetchBody(Ref<const Blob>&& data, const SecurityOrigin& topOrigin) : m_data(WTFMove(data)), m_topOrigin { &topOrigin } { }
     explicit FetchBody(Ref<const ArrayBuffer>&& data) : m_data(WTFMove(data)) { }
     explicit FetchBody(Ref<const ArrayBufferView>&& data) : m_data(WTFMove(data)) { }
     explicit FetchBody(Ref<FormData>&& data) : m_data(WTFMove(data)) { }
@@ -122,6 +122,7 @@ private:
 
     using Data = std::variant<std::nullptr_t, Ref<const Blob>, Ref<FormData>, Ref<const ArrayBuffer>, Ref<const ArrayBufferView>, Ref<const URLSearchParams>, String, Ref<ReadableStream>>;
     Data m_data { nullptr };
+    RefPtr<const SecurityOrigin> m_topOrigin { nullptr };
 
     FetchBodyConsumer m_consumer { FetchBodyConsumer::Type::None };
     RefPtr<ReadableStream> m_readableStream;

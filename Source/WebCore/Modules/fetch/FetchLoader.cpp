@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2016 Canon Inc.
- *
+ * Copyright (C) 2016 Canon Inc.  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted, provided that the following conditions
  * are required to be met:
@@ -49,7 +48,7 @@ namespace WebCore {
 FetchLoader::~FetchLoader()
 {
     if (!m_urlForReading.isEmpty() && m_context)
-        ThreadableBlobRegistry::unregisterBlobURL(m_context->topOrigin(), m_urlForReading);
+        ThreadableBlobRegistry::unregisterBlobURL(m_urlForReading, m_context->topOrigin());
 }
 
 void FetchLoader::start(ScriptExecutionContext& context, const Blob& blob)

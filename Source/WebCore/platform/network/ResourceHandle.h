@@ -96,7 +96,7 @@ class CurlResourceHandleDelegate;
 class ResourceHandle : public RefCounted<ResourceHandle>, public AuthenticationClient {
 public:
     WEBCORE_EXPORT static RefPtr<ResourceHandle> create(NetworkingContext*, const ResourceRequest&, ResourceHandleClient*, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff, RefPtr<SecurityOrigin>&& sourceOrigin, bool isMainFrameNavigation);
-    WEBCORE_EXPORT static void loadResourceSynchronously(NetworkingContext*, const ResourceRequest&, StoredCredentialsPolicy, SecurityOrigin*, ResourceError&, ResourceResponse&, Vector<uint8_t>& data);
+    WEBCORE_EXPORT static void loadResourceSynchronously(NetworkingContext*, const ResourceRequest&, ScriptExecutionEnvironment*, StoredCredentialsPolicy, SecurityOrigin*, ResourceError&, ResourceResponse&, Vector<uint8_t>& data);
     WEBCORE_EXPORT virtual ~ResourceHandle();
 
 #if PLATFORM(COCOA) || USE(CFURLCONNECTION)
