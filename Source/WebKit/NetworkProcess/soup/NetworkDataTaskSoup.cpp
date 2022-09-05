@@ -62,6 +62,7 @@ NetworkDataTaskSoup::NetworkDataTaskSoup(NetworkSession& session, NetworkDataTas
     , m_shouldContentSniff(parameters.contentSniffingPolicy)
     , m_shouldPreconnectOnly(parameters.shouldPreconnectOnly)
     , m_sourceOrigin(parameters.sourceOrigin)
+    , m_topOrigin(parameters.topOrigin)
     , m_timeoutSource(RunLoop::main(), this, &NetworkDataTaskSoup::timeoutFired)
 {
     m_session->registerNetworkDataTask(*this);
@@ -85,7 +86,7 @@ NetworkDataTaskSoup::NetworkDataTaskSoup(NetworkSession& session, NetworkDataTas
         }
         applyAuthenticationToRequest(request);
     }
-    createRequest(WTFMove(request), WasBlockingCookies::No);
+    createRequest(WTFMove(request), WasBlockingCookies::No, parameters.topOrigin);
 }
 
 NetworkDataTaskSoup::~NetworkDataTaskSoup()
@@ -140,7 +141,7 @@ void NetworkDataTaskSoup::setPendingDownloadLocation(const String& filename, San
     m_allowOverwriteDownload = allowOverwrite;
 }
 
-void NetworkDataTaskSoup::createRequest(ResourceRequest&& request, WasBlockingCookies wasBlockingCookies)
+void NetworkDataTaskSoup::createRequest(ResourceRequest&& request, WasBlockingCookies wasBlockingCookies, RefPtr<SecurityOrigin> topOrigin)
 {
     m_currentRequest = WTFMove(request);
     if (m_currentRequest.url().isLocalFile()) {
@@ -158,7 +159,7 @@ void NetworkDataTaskSoup::createRequest(ResourceRequest&& request, WasBlockingCo
 
     restrictRequestReferrerToOriginIfNeeded(m_currentRequest);
 
-    m_soupMessage = m_currentRequest.createSoupMessage(m_session->blobRegistry());
+    m_soupMessage = m_currentRequest.createSoupMessage(m_session->blobRegistry(*topOrigin));
     if (!m_soupMessage) {
         scheduleFailure(FailureType::InvalidURL);
         return;
@@ -1008,7 +1009,7 @@ void NetworkDataTaskSoup::continueHTTPRedirection()
             if (!request.hasHTTPHeaderField(HTTPHeaderName::UserAgent))
                 request.setHTTPUserAgent(userAgent);
         }
-        createRequest(WTFMove(request), wasBlockingCookies);
+        createRequest(WTFMove(request), wasBlockingCookies, m_topOrigin);
         if (m_soupMessage && m_state != State::Suspended) {
             m_state = State::Suspended;
             resume();

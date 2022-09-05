@@ -435,10 +435,10 @@ void NetworkConnectionToWebProcess::didClose(IPC::Connection& connection)
     if (auto* networkSession = this->networkSession()) {
         networkSession->broadcastChannelRegistry().removeConnection(connection);
         for (auto& url : m_blobURLs)
-            networkSession->blobRegistry().unregisterBlobURL(url, topOrigin);
+            networkSession->blobRegistry(topOrigin).unregisterBlobURL(url, topOrigin);
         for (auto& [url, count] : m_blobURLHandles) {
             for (unsigned i = 0; i < count; ++i)
-                networkSession->blobRegistry().unregisterBlobURLHandle(url, topOrigin);
+                networkSession->blobRegistry(topOrigin).unregisterBlobURLHandle(url, topOrigin);
         }
     }
 
@@ -534,7 +534,7 @@ Vector<RefPtr<WebCore::BlobDataFileReference>> NetworkConnectionToWebProcess::re
     if (!session)
         return { };
 
-    auto& blobRegistry = session->blobRegistry();
+    auto& blobRegistry = session->blobRegistry(*loadParameters.topOrigin.get());
 
     Vector<RefPtr<WebCore::BlobDataFileReference>> files;
     if (auto* body = loadParameters.request.httpBody()) {
@@ -751,17 +751,17 @@ NetworkStorageSession* NetworkConnectionToWebProcess::storageSession()
     return networkProcess().storageSession(m_sessionID);
 }
 
-void NetworkConnectionToWebProcess::startDownload(DownloadID downloadID, const ResourceRequest& request, std::optional<NavigatingToAppBoundDomain> isNavigatingToAppBoundDomain, const String& suggestedName)
+void NetworkConnectionToWebProcess::startDownload(DownloadID downloadID, const ResourceRequest& request, std::optional<NavigatingToAppBoundDomain> isNavigatingToAppBoundDomain, RefPtr<SecurityOrigin> topOrigin, const String& suggestedName)
 {
-    m_networkProcess->downloadManager().startDownload(m_sessionID, downloadID, request, isNavigatingToAppBoundDomain, suggestedName);
+    m_networkProcess->downloadManager().startDownload(m_sessionID, downloadID, request, isNavigatingToAppBoundDomain, topOrigin, suggestedName);
 }
 
-void NetworkConnectionToWebProcess::convertMainResourceLoadToDownload(std::optional<WebCore::ResourceLoaderIdentifier> mainResourceLoadIdentifier, DownloadID downloadID, const ResourceRequest& request, const ResourceResponse& response, std::optional<NavigatingToAppBoundDomain> isNavigatingToAppBoundDomain)
+void NetworkConnectionToWebProcess::convertMainResourceLoadToDownload(std::optional<WebCore::ResourceLoaderIdentifier> mainResourceLoadIdentifier, DownloadID downloadID, const ResourceRequest& request, const ResourceResponse& response, std::optional<NavigatingToAppBoundDomain> isNavigatingToAppBoundDomain, RefPtr<SecurityOrigin> topOrigin)
 {
     RELEASE_ASSERT(RunLoop::isMain());
 
     if (!mainResourceLoadIdentifier) {
-        m_networkProcess->downloadManager().startDownload(m_sessionID, downloadID, request, isNavigatingToAppBoundDomain);
+        m_networkProcess->downloadManager().startDownload(m_sessionID, downloadID, request, isNavigatingToAppBoundDomain, topOrigin);
         return;
     }
 
@@ -903,7 +903,7 @@ void NetworkConnectionToWebProcess::registerFileBlobURL(const SecurityOrigin& to
         return;
 
     m_blobURLs.add(url);
-    session->blobRegistry().registerFileBlobURL(url, topOrigin, BlobDataFileReferenceWithSandboxExtension::create(path, replacementPath, SandboxExtension::create(WTFMove(extensionHandle))), contentType);
+    session->blobRegistry(topOrigin).registerFileBlobURL(url, topOrigin, BlobDataFileReferenceWithSandboxExtension::create(path, replacementPath, SandboxExtension::create(WTFMove(extensionHandle))), contentType);
 }
 
 void NetworkConnectionToWebProcess::registerBlobURL(const SecurityOrigin& topOrigin, const URL& url, Vector<BlobPart>&& blobParts, const String& contentType)
@@ -913,7 +913,7 @@ void NetworkConnectionToWebProcess::registerBlobURL(const SecurityOrigin& topOri
         return;
 
     m_blobURLs.add(url);
-    session->blobRegistry().registerBlobURL(url, topOrigin, WTFMove(blobParts), contentType);
+    session->blobRegistry(topOrigin).registerBlobURL(url, topOrigin, WTFMove(blobParts), contentType);
 }
 
 void NetworkConnectionToWebProcess::registerBlobURLFromURL(const SecurityOrigin& topOrigin, const URL& url, const URL& srcURL, PolicyContainer&& policyContainer)
@@ -923,7 +923,7 @@ void NetworkConnectionToWebProcess::registerBlobURLFromURL(const SecurityOrigin&
         return;
 
     m_blobURLs.add(url);
-    session->blobRegistry().registerBlobURL(url, topOrigin, srcURL, WTFMove(policyContainer));
+    session->blobRegistry(topOrigin).registerBlobURL(url, topOrigin, srcURL, WTFMove(policyContainer));
 }
 
 void NetworkConnectionToWebProcess::registerBlobURLOptionallyFileBacked(const SecurityOrigin& topOrigin, const URL& url, const URL& srcURL, const String& fileBackedPath, const String& contentType)
@@ -935,7 +935,7 @@ void NetworkConnectionToWebProcess::registerBlobURLOptionallyFileBacked(const Se
         return;
 
     m_blobURLs.add(url);
-    session->blobRegistry().registerBlobURLOptionallyFileBacked(url, topOrigin, srcURL, BlobDataFileReferenceWithSandboxExtension::create(fileBackedPath), contentType, { });
+    session->blobRegistry(topOrigin).registerBlobURLOptionallyFileBacked(url, topOrigin, srcURL, BlobDataFileReferenceWithSandboxExtension::create(fileBackedPath), contentType, { });
 }
 
 void NetworkConnectionToWebProcess::registerBlobURLForSlice(const SecurityOrigin& topOrigin, const URL& url, const URL& srcURL, int64_t start, int64_t end, const String& contentType)
@@ -945,7 +945,7 @@ void NetworkConnectionToWebProcess::registerBlobURLForSlice(const SecurityOrigin
         return;
 
     m_blobURLs.add(url);
-    session->blobRegistry().registerBlobURLForSlice(url, topOrigin, srcURL, start, end, contentType);
+    session->blobRegistry(topOrigin).registerBlobURLForSlice(url, topOrigin, srcURL, start, end, contentType);
 }
 
 void NetworkConnectionToWebProcess::unregisterBlobURL(const SecurityOrigin& topOrigin, const URL& url)
@@ -955,7 +955,7 @@ void NetworkConnectionToWebProcess::unregisterBlobURL(const SecurityOrigin& topO
         return;
 
     m_blobURLs.remove(url);
-    session->blobRegistry().unregisterBlobURL(url, topOrigin);
+    session->blobRegistry(topOrigin).unregisterBlobURL(url, topOrigin);
 }
 
 void NetworkConnectionToWebProcess::registerBlobURLHandle(const SecurityOrigin& topOrigin, const URL& url)
@@ -965,7 +965,7 @@ void NetworkConnectionToWebProcess::registerBlobURLHandle(const SecurityOrigin& 
         return;
 
     m_blobURLHandles.add(url);
-    session->blobRegistry().registerBlobURLHandle(url, topOrigin);
+    session->blobRegistry(topOrigin).registerBlobURLHandle(url, topOrigin);
 }
 
 void NetworkConnectionToWebProcess::unregisterBlobURLHandle(const SecurityOrigin& topOrigin, const URL& url)
@@ -975,13 +975,13 @@ void NetworkConnectionToWebProcess::unregisterBlobURLHandle(const SecurityOrigin
         return;
 
     m_blobURLHandles.remove(url);
-    session->blobRegistry().unregisterBlobURLHandle(url, topOrigin);
+    session->blobRegistry(topOrigin).unregisterBlobURLHandle(url, topOrigin);
 }
 
 void NetworkConnectionToWebProcess::blobSize(const SecurityOrigin& topOrigin, const URL& url, CompletionHandler<void(uint64_t)>&& completionHandler)
 {
     auto* session = networkSession();
-    completionHandler(session ? session->blobRegistry().blobSize(url, topOrigin) : 0);
+    completionHandler(session ? session->blobRegistry(topOrigin).blobSize(url, topOrigin) : 0);
 }
 
 void NetworkConnectionToWebProcess::writeBlobsToTemporaryFilesForIndexedDB(const SecurityOrigin& topOrigin, const Vector<String>& blobURLs, CompletionHandler<void(Vector<String>&&)>&& completionHandler)
@@ -992,12 +992,12 @@ void NetworkConnectionToWebProcess::writeBlobsToTemporaryFilesForIndexedDB(const
 
     Vector<RefPtr<BlobDataFileReference>> fileReferences;
     for (auto& url : blobURLs)
-        fileReferences.appendVector(session->blobRegistry().filesInBlob({ { }, url }, topOrigin));
+        fileReferences.appendVector(session->blobRegistry(topOrigin).filesInBlob({ { }, url }, topOrigin));
 
     for (auto& file : fileReferences)
         file->prepareForFileAccess();
 
-    session->blobRegistry().writeBlobsToTemporaryFilesForIndexedDB(blobURLs, topOrigin, [this, &topOrigin, protectedThis = Ref { *this }, fileReferences = WTFMove(fileReferences), completionHandler = WTFMove(completionHandler)](auto&& filePaths) mutable {
+    session->blobRegistry(topOrigin).writeBlobsToTemporaryFilesForIndexedDB(blobURLs, topOrigin, [this, &topOrigin, protectedThis = Ref { *this }, fileReferences = WTFMove(fileReferences), completionHandler = WTFMove(completionHandler)](auto&& filePaths) mutable {
         for (auto& file : fileReferences)
             file->revokeFileAccess();
 

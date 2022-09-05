@@ -51,7 +51,7 @@ NetworkLoad::NetworkLoad(NetworkLoadClient& client, BlobRegistryImpl* blobRegist
     , m_currentRequest(m_parameters.request)
 {
     if (blobRegistry && m_parameters.request.url().protocolIsBlob())
-        m_task = NetworkDataTaskBlob::create(networkSession, *blobRegistry, *this, m_parameters.request, m_parameters.contentSniffingPolicy, m_parameters.blobFileReferences);
+        m_task = NetworkDataTaskBlob::create(networkSession, *blobRegistry, *this, m_parameters);
     else
         m_task = NetworkDataTask::create(networkSession, *this, m_parameters);
 }

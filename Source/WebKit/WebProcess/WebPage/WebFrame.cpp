@@ -292,10 +292,15 @@ void WebFrame::startDownload(const WebCore::ResourceRequest& request, const Stri
         return;
     }
     auto policyDownloadID = *std::exchange(m_policyDownloadID, std::nullopt);
+    RefPtr<SecurityOrigin> topOrigin;
+    if (m_coreFrame) {
+        if (auto* document = m_coreFrame->document())
+            topOrigin = document->topOrigin();
+    }
 
     std::optional<NavigatingToAppBoundDomain> isAppBound = NavigatingToAppBoundDomain::No;
     isAppBound = m_isNavigatingToAppBoundDomain;
-    WebProcess::singleton().ensureNetworkProcessConnection().connection().send(Messages::NetworkConnectionToWebProcess::StartDownload(policyDownloadID, request,  isAppBound, suggestedName), 0);
+    WebProcess::singleton().ensureNetworkProcessConnection().connection().send(Messages::NetworkConnectionToWebProcess::StartDownload(policyDownloadID, request,  isAppBound, suggestedName, topOrigin), 0);
 }
 
 void WebFrame::convertMainResourceLoadToDownload(DocumentLoader* documentLoader, const ResourceRequest& request, const ResourceResponse& response)
@@ -307,6 +312,7 @@ void WebFrame::convertMainResourceLoadToDownload(DocumentLoader* documentLoader,
     auto policyDownloadID = *std::exchange(m_policyDownloadID, std::nullopt);
 
     SubresourceLoader* mainResourceLoader = documentLoader->mainResourceLoader();
+    RefPtr<SecurityOrigin> topOrigin;
 
     auto& webProcess = WebProcess::singleton();
     // Use std::nullopt to indicate that the resource load can't be converted and a new download must be started.
@@ -315,10 +321,14 @@ void WebFrame::convertMainResourceLoadToDownload(DocumentLoader* documentLoader,
     std::optional<WebCore::ResourceLoaderIdentifier> mainResourceLoadIdentifier;
     if (mainResourceLoader)
         mainResourceLoadIdentifier = mainResourceLoader->identifier();
+    else if (m_coreFrame) {
+        if (auto* document = m_coreFrame->document())
+            topOrigin = document->topOrigin();
+    }
 
     std::optional<NavigatingToAppBoundDomain> isAppBound = NavigatingToAppBoundDomain::No;
     isAppBound = m_isNavigatingToAppBoundDomain;
-    webProcess.ensureNetworkProcessConnection().connection().send(Messages::NetworkConnectionToWebProcess::ConvertMainResourceLoadToDownload(mainResourceLoadIdentifier, policyDownloadID, request, response, isAppBound), 0);
+    webProcess.ensureNetworkProcessConnection().connection().send(Messages::NetworkConnectionToWebProcess::ConvertMainResourceLoadToDownload(mainResourceLoadIdentifier, policyDownloadID, request, response, isAppBound, topOrigin), 0);
 }
 
 void WebFrame::addConsoleMessage(MessageSource messageSource, MessageLevel messageLevel, const String& message, uint64_t requestID)

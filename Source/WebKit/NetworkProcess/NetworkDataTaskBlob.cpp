@@ -69,19 +69,19 @@ static constexpr auto httpInternalErrorText = "Internal Server Error"_s;
 
 static constexpr auto webKitBlobResourceDomain = "WebKitBlobResource"_s;
 
-NetworkDataTaskBlob::NetworkDataTaskBlob(NetworkSession& session, BlobRegistryImpl& blobRegistry, NetworkDataTaskClient& client, const ResourceRequest& request, ContentSniffingPolicy shouldContentSniff, const Vector<RefPtr<WebCore::BlobDataFileReference>>& fileReferences)
-    : NetworkDataTask(session, client, request, StoredCredentialsPolicy::DoNotUse, false, false)
+NetworkDataTaskBlob::NetworkDataTaskBlob(NetworkSession& session, BlobRegistryImpl& blobRegistry, NetworkDataTaskClient& client, const NetworkLoadParameters& parameters)
+    : NetworkDataTask(session, client, m_parameters.request, StoredCredentialsPolicy::DoNotUse, false, false)
     , m_stream(makeUnique<AsyncFileStream>(*this))
-    , m_fileReferences(fileReferences)
+    , m_fileReferences(m_parameters.blobFileReferences)
     , m_networkProcess(session.networkProcess())
 {
     for (auto& fileReference : m_fileReferences)
         fileReference->prepareForFileAccess();
 
-    m_blobData = blobRegistry.getBlobDataFromURL(request.url());
+    m_blobData = blobRegistry.getBlobDataFromURL(m_parameters.request.url(), m_parameters.topOrigin);
 
     m_session->registerNetworkDataTask(*this);
-    LOG(NetworkSession, "%p - Created NetworkDataTaskBlob for %s", this, request.url().string().utf8().data());
+    LOG(NetworkSession, "%p - Created NetworkDataTaskBlob for %s", this, m_parameters.request.url().string().utf8().data());
 }
 
 NetworkDataTaskBlob::~NetworkDataTaskBlob()
@@ -89,8 +89,7 @@ NetworkDataTaskBlob::~NetworkDataTaskBlob()
     for (auto& fileReference : m_fileReferences)
         fileReference->revokeFileAccess();
 
-    clearStream();
-    if (m_session)
+    clearStream(); if (m_session)
         m_session->unregisterNetworkDataTask(*this);
 }
 
