@@ -107,7 +107,7 @@ void PingLoader::loadImage(Frame& frame, const URL& url)
 
     HTTPHeaderMap originalRequestHeader = request.httpHeaderFields();
 
-    String referrer = SecurityPolicy::generateReferrerHeader(document.referrerPolicy(), request.url(), frame.loader().outgoingReferrer());
+    String referrer = SecurityPolicy::generateReferrerHeader(document.referrerPolicy(), request.url(), frame.loader().outgoingReferrer(), &document.topOrigin());
     if (!referrer.isEmpty())
         request.setHTTPReferrer(referrer);
     frame.loader().updateRequestAndAddExtraFields(request, IsMainResource::No);
@@ -142,7 +142,8 @@ void PingLoader::sendPing(Frame& frame, const URL& pingURL, const URL& destinati
     HTTPHeaderMap originalRequestHeader = request.httpHeaderFields();
 
     auto& sourceOrigin = document.securityOrigin();
-    FrameLoader::addHTTPOriginIfNeeded(request, SecurityPolicy::generateOriginHeader(document.referrerPolicy(), request.url(), sourceOrigin));
+    auto& topOrigin = document.topOrigin();
+    FrameLoader::addHTTPOriginIfNeeded(request, SecurityPolicy::generateOriginHeader(document.referrerPolicy(), request.url(), sourceOrigin, topOrigin));
 
     frame.loader().updateRequestAndAddExtraFields(request, IsMainResource::No);
     request.setHTTPHeaderField(HTTPHeaderName::PingTo, destinationURL.string());
@@ -177,7 +178,7 @@ void PingLoader::sendViolationReport(Frame& frame, const URL& reportURL, Ref<For
     }
 
     bool removeCookies = true;
-    if (document.securityOrigin().isSameSchemeHostPort(SecurityOrigin::create(reportURL).get()))
+    if (document.securityOrigin().isSameSchemeHostPort(SecurityOrigin::create(reportURL, nullptr).get()))
         removeCookies = false;
     if (removeCookies)
         request.setAllowCookies(false);
@@ -187,7 +188,7 @@ void PingLoader::sendViolationReport(Frame& frame, const URL& reportURL, Ref<For
     if (reportType != ViolationReportType::StandardReportingAPIViolation)
         frame.loader().updateRequestAndAddExtraFields(request, IsMainResource::No);
 
-    String referrer = SecurityPolicy::generateReferrerHeader(document.referrerPolicy(), reportURL, frame.loader().outgoingReferrer());
+    String referrer = SecurityPolicy::generateReferrerHeader(document.referrerPolicy(), reportURL, frame.loader().outgoingReferrer(), &document.topOrigin());
     if (!referrer.isEmpty())
         request.setHTTPReferrer(referrer);
 

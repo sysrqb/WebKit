@@ -950,7 +950,8 @@ ResourceErrorOr<CachedResourceHandle<CachedResource>> CachedResourceLoader::requ
 
     if (m_documentLoader && !m_documentLoader->customHeaderFields().isEmpty()) {
         bool sameOriginRequest = false;
-        auto requestedOrigin = SecurityOrigin::create(url);
+        auto* topOrigin = frame.mainFrame().document() ?  &frame.mainFrame().document()->topOrigin() : nullptr;
+        auto requestedOrigin = SecurityOrigin::create(url, topOrigin);
         if (type == CachedResource::Type::MainResource) {
             if (frame.isMainFrame())
                 sameOriginRequest = true;

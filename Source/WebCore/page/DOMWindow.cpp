@@ -906,7 +906,7 @@ ExceptionOr<void> DOMWindow::postMessage(JSC::JSGlobalObject& lexicalGlobalObjec
             return { };
         target = &sourceDocument->securityOrigin();
     } else if (options.targetOrigin != "*"_s) {
-        target = SecurityOrigin::createFromString(options.targetOrigin);
+        target = SecurityOrigin::createFromString(options.targetOrigin, &sourceDocument->topOrigin());
         // It doesn't make sense target a postMessage at a unique origin
         // because there's no way to represent a unique origin in a string.
         if (target->isUnique())
@@ -2463,6 +2463,7 @@ String DOMWindow::crossDomainAccessErrorMessage(const DOMWindow& activeWindow, I
     // FIXME: This message, and other console messages, have extra newlines. Should remove them.
     SecurityOrigin& activeOrigin = activeWindow.document()->securityOrigin();
     SecurityOrigin& targetOrigin = document()->securityOrigin();
+    SecurityOrigin& topOrigin = activeWindow.document()->topOrigin();
     String message;
     if (includeTargetOrigin == IncludeTargetOrigin::Yes)
         message = makeString("Blocked a frame with origin \"", activeOrigin.toString(), "\" from accessing a frame with origin \"", targetOrigin.toString(), "\". ");
@@ -2474,9 +2475,9 @@ String DOMWindow::crossDomainAccessErrorMessage(const DOMWindow& activeWindow, I
     URL targetURL = document()->url();
     if (document()->isSandboxed(SandboxOrigin) || activeWindow.document()->isSandboxed(SandboxOrigin)) {
         if (includeTargetOrigin == IncludeTargetOrigin::Yes)
-            message = makeString("Blocked a frame at \"", SecurityOrigin::create(activeURL).get().toString(), "\" from accessing a frame at \"", SecurityOrigin::create(targetURL).get().toString(), "\". ");
+            message = makeString("Blocked a frame at \"", SecurityOrigin::create(activeURL, &topOrigin).get().toString(), "\" from accessing a frame at \"", SecurityOrigin::create(targetURL).get().toString(), "\". ");
         else
-            message = makeString("Blocked a frame at \"", SecurityOrigin::create(activeURL).get().toString(), "\" from accessing a cross-origin frame. ");
+            message = makeString("Blocked a frame at \"", SecurityOrigin::create(activeURL, &topOrigin).get().toString(), "\" from accessing a cross-origin frame. ");
 
         if (document()->isSandboxed(SandboxOrigin) && activeWindow.document()->isSandboxed(SandboxOrigin))
             return makeString("Sandbox access violation: ", message, " Both frames are sandboxed and lack the \"allow-same-origin\" flag.");
@@ -2544,7 +2545,7 @@ ExceptionOr<RefPtr<Frame>> DOMWindow::createWindow(const String& urlString, cons
     WindowFeatures windowFeatures = initialWindowFeatures;
 
     // For whatever reason, Firefox uses the first frame to determine the outgoingReferrer. We replicate that behavior here.
-    String referrer = windowFeatures.noreferrer ? String() : SecurityPolicy::generateReferrerHeader(firstFrame.document()->referrerPolicy(), completedURL, firstFrame.loader().outgoingReferrer());
+    String referrer = windowFeatures.noreferrer ? String() : SecurityPolicy::generateReferrerHeader(firstFrame.document()->referrerPolicy(), completedURL, firstFrame.loader().outgoingReferrer(), &activeDocument->topOrigin());
     auto initiatedByMainFrame = activeFrame->isMainFrame() ? InitiatedByMainFrame::Yes : InitiatedByMainFrame::Unknown;
 
     ResourceRequest resourceRequest { completedURL, referrer };

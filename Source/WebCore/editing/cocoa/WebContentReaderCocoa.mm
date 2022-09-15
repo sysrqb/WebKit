@@ -466,7 +466,7 @@ static String sanitizeMarkupWithArchive(Frame& frame, Document& destinationDocum
         blobURLMap.set(AtomString { subresourceURL.string() }, AtomString { blobURL });
     }
 
-    auto contentOrigin = SecurityOrigin::create(markupAndArchive.mainResource->url());
+    auto contentOrigin = SecurityOrigin::create(markupAndArchive.mainResource->url(), nullptr);
     for (const Ref<Archive>& subframeArchive : markupAndArchive.archive->subframeArchives()) {
         RefPtr<ArchiveResource> subframeMainResource = subframeArchive->mainResource();
         if (!subframeMainResource)

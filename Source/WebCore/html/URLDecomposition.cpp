@@ -33,7 +33,7 @@ namespace WebCore {
 
 String URLDecomposition::origin() const
 {
-    return SecurityOrigin::create(fullURL())->toString();
+    return SecurityOrigin::create(fullURL(), nullptr)->toString();
 }
 
 String URLDecomposition::protocol() const

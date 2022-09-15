@@ -68,7 +68,7 @@ SecurityOriginData SecurityOriginData::fromFrame(Frame* frame)
 
 Ref<SecurityOrigin> SecurityOriginData::securityOrigin() const
 {
-    return SecurityOrigin::create(protocol.isolatedCopy(), host.isolatedCopy(), port);
+    return SecurityOrigin::create(protocol.isolatedCopy(), host.isolatedCopy(), port, nullptr);
 }
 
 static const char separatorCharacter = '_';

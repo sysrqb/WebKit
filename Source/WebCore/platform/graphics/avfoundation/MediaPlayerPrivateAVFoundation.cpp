@@ -196,7 +196,7 @@ void MediaPlayerPrivateAVFoundation::load(const String& url)
     setReadyState(MediaPlayer::ReadyState::HaveNothing);
 
     m_assetURL = URL({ }, url);
-    m_requestedOrigin = SecurityOrigin::create(m_assetURL);
+    m_requestedOrigin = SecurityOrigin::create(m_assetURL, m_player->documentSecurityOrigin().securityOrigin().ptr());
 
     // Don't do any more work if the url is empty.
     if (!url.length())
@@ -494,7 +494,7 @@ bool MediaPlayerPrivateAVFoundation::hasSingleSecurityOrigin() const
 void MediaPlayerPrivateAVFoundation::setResolvedURL(URL&& resolvedURL)
 {
     m_resolvedURL = WTFMove(resolvedURL);
-    m_resolvedOrigin = SecurityOrigin::create(m_resolvedURL);
+    m_resolvedOrigin = SecurityOrigin::create(m_resolvedURL, m_player->documentSecurityOrigin().securityOrigin().ptr());
 }
 
 void MediaPlayerPrivateAVFoundation::updateStates()

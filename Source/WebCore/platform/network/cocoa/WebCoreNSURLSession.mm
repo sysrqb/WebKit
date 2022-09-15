@@ -886,7 +886,7 @@ void WebCoreNSURLSessionDataTaskClient::loadFinished(PlatformMediaResource& reso
     ASSERT_UNUSED(resource, !resource || resource == _resource);
     ASSERT(isMainThread());
     RetainPtr<WebCoreNSURLSession> strongSession { self.session };
-    [strongSession task:self didReceiveResponseFromOrigin:SecurityOrigin::create(response.url())];
+    [strongSession task:self didReceiveResponseFromOrigin:SecurityOrigin::create(response.url(), nullptr)];
     [strongSession task:self didReceiveCORSAccessCheckResult:resource ? resource->didPassAccessControlCheck() : YES];
     self.countOfBytesExpectedToReceive = response.expectedContentLength();
     RetainPtr<NSURLResponse> strongResponse = response.nsURLResponse();

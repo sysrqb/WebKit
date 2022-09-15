@@ -31,6 +31,7 @@
 #include "CrossOriginAccessControl.h"
 #include "Document.h"
 #include "Element.h"
+#include "Frame.h"
 #include "FrameLoader.h"
 #include "HTTPHeaderValues.h"
 #include "ImageDecoder.h"
@@ -267,10 +268,12 @@ void CachedResourceRequest::updateReferrerAndOriginHeaders(FrameLoader& frameLoa
     if (!m_resourceRequest.httpOrigin().isEmpty())
         return;
     String outgoingOrigin;
+    auto& topOrigin = frameLoader.frame().document()->topOrigin();
     if (m_options.mode == FetchOptions::Mode::Cors)
-        outgoingOrigin = SecurityOrigin::createFromString(outgoingReferrer)->toString();
-    else
-        outgoingOrigin = SecurityPolicy::generateOriginHeader(m_options.referrerPolicy, m_resourceRequest.url(), SecurityOrigin::createFromString(outgoingReferrer));
+        outgoingOrigin = SecurityOrigin::createFromString(outgoingReferrer, &topOrigin)->toString();
+    else {
+        outgoingOrigin = SecurityPolicy::generateOriginHeader(m_options.referrerPolicy, m_resourceRequest.url(), SecurityOrigin::createFromString(outgoingReferrer, &topOrigin));
+    }
     FrameLoader::addHTTPOriginIfNeeded(m_resourceRequest, outgoingOrigin);
 }
 
@@ -278,7 +281,7 @@ void CachedResourceRequest::updateFetchMetadataHeaders()
 {
     // Implementing step 13 of https://fetch.spec.whatwg.org/#http-network-or-cache-fetch as of 22 Feb 2022
     // https://w3c.github.io/webappsec-fetch-metadata/#fetch-integration
-    auto requestOrigin = SecurityOrigin::create(m_resourceRequest.url());
+    auto requestOrigin = SecurityOrigin::create(m_resourceRequest.url(), nullptr);
     if (!requestOrigin->isPotentiallyTrustworthy())
         return;
 

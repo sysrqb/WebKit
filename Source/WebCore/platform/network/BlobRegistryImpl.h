@@ -89,8 +89,8 @@ private:
     void addBlobData(const String& url, const SecurityOrigin&, RefPtr<BlobData>&&);
 
     using URLBlobMap = MemoryCompactRobinHoodHashMap<String, RefPtr<BlobData>>;
-    HashCountedSet<std::pair<const SecurityOrigin&, String&>> m_blobReferences;
-    HashMap<SecurityOrigin, URLBlobMap> m_blobs;
+    HashCountedSet<std::pair<Ref<const SecurityOrigin>, String>> m_blobReferences;
+    HashMap<Ref<const SecurityOrigin>, URLBlobMap> m_blobs;
 };
 
 } // namespace WebCore

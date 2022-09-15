@@ -516,7 +516,7 @@ ResourceRequest SWServer::createScriptRequest(const URL& url, const ServiceWorke
     ResourceRequest request { url };
 
     auto topOrigin = jobData.topOrigin.securityOrigin();
-    auto origin = SecurityOrigin::create(jobData.scriptURL);
+    auto origin = SecurityOrigin::create(jobData.scriptURL, topOrigin.ptr());
 
     request.setDomainForCachePartition(jobData.domainForCachePartition);
     request.setAllowCookies(true);
@@ -524,7 +524,7 @@ ResourceRequest SWServer::createScriptRequest(const URL& url, const ServiceWorke
 
     request.setHTTPHeaderField(HTTPHeaderName::Origin, origin->toString());
     request.setHTTPReferrer(originURL(origin).string());
-    request.setHTTPUserAgent(serviceWorkerClientUserAgent(ClientOrigin { jobData.topOrigin, SecurityOrigin::create(jobData.scriptURL)->data() }));
+    request.setHTTPUserAgent(serviceWorkerClientUserAgent(ClientOrigin { jobData.topOrigin, SecurityOrigin::create(jobData.scriptURL, topOrigin.ptr())->data() }));
     request.setPriority(ResourceLoadPriority::Low);
     request.setIsAppInitiated(registration.isAppInitiated());
 

@@ -86,7 +86,7 @@ ContentSecurityPolicy::ContentSecurityPolicy(URL&& protectedURL, ContentSecurity
     : m_client { client }
     , m_protectedURL { WTFMove(protectedURL) }
 {
-    updateSourceSelf(SecurityOrigin::create(m_protectedURL).get());
+    updateSourceSelf(SecurityOrigin::create(m_protectedURL, nullptr).get());
 }
 
 ContentSecurityPolicy::ContentSecurityPolicy(URL&& protectedURL, ScriptExecutionContext& scriptExecutionContext)
@@ -730,7 +730,7 @@ String ContentSecurityPolicy::createURLForReporting(const URL& url, const String
         return url.protocol().toString();
     if (securityOrigin->canRequest(url) || directiveIsSafe)
         return url.strippedForUseAsReferrer();
-    return SecurityOrigin::create(url)->toString();
+    return SecurityOrigin::create(url, nullptr)->toString();
 }
 
 void ContentSecurityPolicy::reportViolation(const ContentSecurityPolicyDirective& violatedDirective, const String& blockedURL, const String& consoleMessage, JSC::JSGlobalObject* state, StringView sourceContent) const

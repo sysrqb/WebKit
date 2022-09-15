@@ -280,7 +280,7 @@ RefPtr<Frame> FrameLoader::SubframeLoader::loadSubframe(HTMLFrameOwnerElement& o
     ReferrerPolicy policy = ownerElement.referrerPolicy();
     if (policy == ReferrerPolicy::EmptyString)
         policy = document->referrerPolicy();
-    String referrerToUse = SecurityPolicy::generateReferrerHeader(policy, url, referrer);
+    String referrerToUse = SecurityPolicy::generateReferrerHeader(policy, url, referrer, &document->topOrigin());
 
     m_frame.loader().loadURLIntoChildFrame(url, referrerToUse, frame.get());
 

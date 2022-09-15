@@ -1969,7 +1969,7 @@ void WKPageSetPageUIClient(WKPageRef pageRef, const WKPageUIClientBase* wkClient
             if (!m_client.shouldAllowDeviceOrientationAndMotionAccess)
                 return completionHandler(false);
 
-            auto origin = API::SecurityOrigin::create(SecurityOrigin::createFromString(page.pageLoadState().activeURL()).get());
+            auto origin = API::SecurityOrigin::create(SecurityOrigin::createFromString(page.pageLoadState().activeURL(), nullptr).get());
             auto apiFrameInfo = API::FrameInfo::create(WTFMove(frameInfo), &page);
             completionHandler(m_client.shouldAllowDeviceOrientationAndMotionAccess(toAPI(&page), toAPI(origin.ptr()), toAPI(apiFrameInfo.ptr()), m_client.base.clientInfo));
         }

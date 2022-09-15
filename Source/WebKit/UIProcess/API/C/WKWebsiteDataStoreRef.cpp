@@ -800,7 +800,7 @@ void WKWebsiteDataStoreGetFetchCacheSizeForOrigin(WKWebsiteDataStoreRef dataStor
     OptionSet<WebKit::WebsiteDataFetchOption> fetchOptions = WebKit::WebsiteDataFetchOption::ComputeSizes;
 
     WebKit::toImpl(dataStoreRef)->fetchData(WebKit::WebsiteDataType::DOMCache, fetchOptions, [origin, context, callback] (auto dataRecords) {
-        auto originData = WebCore::SecurityOrigin::createFromString(WebKit::toImpl(origin)->string())->data();
+        auto originData = WebCore::SecurityOrigin::createFromString(WebKit::toImpl(origin)->string(), nullptr)->data();
         for (auto& dataRecord : dataRecords) {
             for (const auto& recordOrigin : dataRecord.origins) {
                 if (originData == recordOrigin) {

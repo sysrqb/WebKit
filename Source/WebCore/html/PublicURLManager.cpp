@@ -64,7 +64,7 @@ void PublicURLManager::revoke(const URL& url)
     if (!contextOrigin)
         return;
 
-    auto urlOrigin = SecurityOrigin::create(url);
+    auto urlOrigin = SecurityOrigin::create(url, &scriptExecutionContext()->topOrigin());
     if (!urlOrigin->isSameOriginAs(*contextOrigin))
         return;
 

@@ -3730,12 +3730,12 @@ bool Document::canNavigateInternal(Frame& targetFrame)
 
 void Document::willLoadScriptElement(const URL& scriptURL)
 {
-    m_hasLoadedThirdPartyScript = m_hasLoadedThirdPartyScript || !securityOrigin().isSameOriginAs(SecurityOrigin::create(scriptURL));
+    m_hasLoadedThirdPartyScript = m_hasLoadedThirdPartyScript || !securityOrigin().isSameOriginAs(SecurityOrigin::create(scriptURL, &topOrigin()));
 }
 
 void Document::willLoadFrameElement(const URL& frameURL)
 {
-    m_hasLoadedThirdPartyFrame = m_hasLoadedThirdPartyFrame || !securityOrigin().isSameOriginAs(SecurityOrigin::create(frameURL));
+    m_hasLoadedThirdPartyFrame = m_hasLoadedThirdPartyFrame || !securityOrigin().isSameOriginAs(SecurityOrigin::create(frameURL, &topOrigin()));
 }
 
 // Prevent cross-site top-level redirects from third-party iframes unless the user has ever interacted with the frame.
@@ -3768,7 +3768,7 @@ bool Document::isNavigationBlockedByThirdPartyIFrameRedirectBlocking(Frame& targ
 
     // Only prevent cross-site navigations.
     RefPtr targetDocument = targetFrame.document();
-    if (targetDocument && (targetDocument->securityOrigin().isSameOriginDomain(SecurityOrigin::create(destinationURL)) || areRegistrableDomainsEqual(targetDocument->url(), destinationURL)))
+    if (targetDocument && (targetDocument->securityOrigin().isSameOriginDomain(SecurityOrigin::create(destinationURL, &topOrigin())) || areRegistrableDomainsEqual(targetDocument->url(), destinationURL)))
         return false;
 
     return true;
@@ -6350,7 +6350,7 @@ void Document::initSecurityContext()
     if (!isSecurityOriginUnique)
         isSecurityOriginUnique = documentLoader && documentLoader->response().tainting() == ResourceResponse::Tainting::Opaque;
 
-    setSecurityOriginPolicy(SecurityOriginPolicy::create(isSecurityOriginUnique ? SecurityOrigin::createUnique() : SecurityOrigin::create(m_url)));
+    setSecurityOriginPolicy(SecurityOriginPolicy::create(isSecurityOriginUnique ? SecurityOrigin::createUnique() : SecurityOrigin::create(m_url, &topOrigin())));
     setContentSecurityPolicy(makeUnique<ContentSecurityPolicy>(URL { m_url }, *this));
 
     String overrideContentSecurityPolicy = m_frame->loader().client().overrideContentSecurityPolicy();
@@ -6490,7 +6490,7 @@ static bool isURLPotentiallyTrustworthy(const URL& url)
         return url.isAboutBlank() || url.isAboutSrcDoc();
     if (url.protocolIsData())
         return true;
-    return SecurityOrigin::create(url)->isPotentiallyTrustworthy();
+    return SecurityOrigin::create(url, &topOrigin())->isPotentiallyTrustworthy();
 }
 
 // https://w3c.github.io/webappsec-secure-contexts/#is-settings-object-contextually-secure step 5.3 and 5.4

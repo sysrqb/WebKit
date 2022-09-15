@@ -129,6 +129,7 @@ private:
     bool m_isAlwaysOnLoggingAllowed { false };
     WebCore::ShouldRelaxThirdPartyCookieBlocking m_shouldRelaxThirdPartyCookieBlocking { WebCore::ShouldRelaxThirdPartyCookieBlocking::No };
     RefPtr<WebCore::SecurityOrigin> m_sourceOrigin;
+    RefPtr<WebCore::SecurityOrigin> m_topOrigin;
 };
 
 WebCore::Credential serverTrustCredential(const WebCore::AuthenticationChallenge&);

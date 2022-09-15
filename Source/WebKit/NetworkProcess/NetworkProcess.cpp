@@ -1588,7 +1588,8 @@ static void clearDiskCacheEntries(NetworkCache::Cache* cache, const Vector<Secur
     Vector<NetworkCache::Key> cacheKeysToDelete;
     cache->traverse([cache, completionHandler = WTFMove(completionHandler), originsToDelete = WTFMove(originsToDelete), cacheKeysToDelete = WTFMove(cacheKeysToDelete)](auto* traversalEntry) mutable {
         if (traversalEntry) {
-            if (originsToDelete.contains(SecurityOrigin::create(traversalEntry->entry.response().url())))
+            // FIXME Consider caching associated topOrigin.
+            if (originsToDelete.contains(SecurityOrigin::create(traversalEntry->entry.response().url(), nullptr)))
                 cacheKeysToDelete.append(traversalEntry->entry.key());
             return;
         }

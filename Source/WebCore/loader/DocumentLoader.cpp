@@ -658,7 +658,8 @@ void DocumentLoader::willSendRequest(ResourceRequest&& newRequest, const Resourc
     if (didReceiveRedirectResponse) {
         // If the redirecting url is not allowed to display content from the target origin,
         // then block the redirect.
-        Ref<SecurityOrigin> redirectingOrigin(SecurityOrigin::create(redirectResponse.url()));
+        auto* topOrigin = frameLoader()->activeDocumentLoader()->document()->topOrigin();
+        Ref<SecurityOrigin> redirectingOrigin(SecurityOrigin::create(redirectResponse.url(), topOrigin));
         if (!redirectingOrigin.get().canDisplay(newRequest.url())) {
             DOCUMENTLOADER_RELEASE_LOG("willSendRequest: canceling - redirecting URL not allowed to display content from target");
             FrameLoader::reportLocalLoadFailed(m_frame.get(), newRequest.url().string());
@@ -2197,7 +2198,7 @@ void DocumentLoader::loadMainResource(ResourceRequest&& request)
         if (frameLoader()->frame().settings().storageBlockingPolicy() != StorageBlockingPolicy::BlockThirdParty)
             mainResourceRequest.setDomainForCachePartition(emptyString());
         else {
-            auto origin = SecurityOrigin::create(mainResourceRequest.resourceRequest().url());
+            auto origin = SecurityOrigin::create(mainResourceRequest.resourceRequest().url(), nullptr);
             mainResourceRequest.setDomainForCachePartition(origin->domainForCachePartition());
         }
     }

@@ -59,7 +59,7 @@ WorkletGlobalScope::WorkletGlobalScope(WorkerOrWorkletThread& thread, Ref<JSC::V
     ++gNumberOfWorkletGlobalScopes;
 
     setStorageBlockingPolicy(parameters.settingsValues.storageBlockingPolicy);
-    setSecurityOriginPolicy(SecurityOriginPolicy::create(SecurityOrigin::create(this->url())));
+    setSecurityOriginPolicy(SecurityOriginPolicy::create(SecurityOrigin::create(this->url(), m_topOrigin.ptr())));
     setContentSecurityPolicy(makeUnique<ContentSecurityPolicy>(URL { this->url() }, *this));
 }
 
@@ -77,7 +77,7 @@ WorkletGlobalScope::WorkletGlobalScope(Document& document, Ref<JSC::VM>&& vm, Sc
     ASSERT(document.page());
 
     setStorageBlockingPolicy(m_document->settings().storageBlockingPolicy());
-    setSecurityOriginPolicy(SecurityOriginPolicy::create(SecurityOrigin::create(this->url())));
+    setSecurityOriginPolicy(SecurityOriginPolicy::create(SecurityOrigin::create(this->url(), m_topOrigin.ptr())));
     setContentSecurityPolicy(makeUnique<ContentSecurityPolicy>(URL { this->url() }, *this));
 }
 

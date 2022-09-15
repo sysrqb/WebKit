@@ -151,7 +151,7 @@ static bool scheduledWithCustomRunLoopMode(const std::optional<SchedulePairHashS
             redirectRequest.clearHTTPContentType();
 
         // Check if the redirected url is allowed to access the redirecting url's timing information.
-        if (!m_handle->hasCrossOriginRedirect() && !WebCore::SecurityOrigin::create(redirectRequest.url())->canRequest(redirectResponse.get().URL))
+        if (!m_handle->hasCrossOriginRedirect() && !WebCore::SecurityOrigin::create(redirectRequest.url(), m_handle->topOrigin().get())->canRequest(redirectResponse.get().URL))
             m_handle->markAsHavingCrossOriginRedirect();
         m_handle->checkTAO(response);
 

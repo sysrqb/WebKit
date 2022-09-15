@@ -103,7 +103,7 @@ String Location::search() const
 
 String Location::origin() const
 {
-    return SecurityOrigin::create(url())->toString();
+    return SecurityOrigin::create(url(), &frame()->document()->topOrigin())->toString();
 }
 
 Ref<DOMStringList> Location::ancestorOrigins() const

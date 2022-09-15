@@ -833,8 +833,8 @@ bool MediaPlayerPrivateGStreamer::hasSingleSecurityOrigin() const
     if (!g_strcmp0(originalURI.get(), resolvedURI.get()))
         return true;
 
-    Ref<SecurityOrigin> resolvedOrigin(SecurityOrigin::createFromString(String::fromUTF8(resolvedURI.get())));
-    Ref<SecurityOrigin> requestedOrigin(SecurityOrigin::createFromString(String::fromUTF8(originalURI.get())));
+    Ref<SecurityOrigin> resolvedOrigin(SecurityOrigin::createFromString(String::fromUTF8(resolvedURI.get()), m_player->documentSecurityOrigin().securityOrigin()));
+    Ref<SecurityOrigin> requestedOrigin(SecurityOrigin::createFromString(String::fromUTF8(originalURI.get()), m_player->documentSecurityOrigin().securityOrigin()));
     return resolvedOrigin->isSameSchemeHostPort(requestedOrigin.get());
 }
 
@@ -1906,7 +1906,7 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
             GST_DEBUG_OBJECT(pipeline(), "Processing HTTP headers: %" GST_PTR_FORMAT, structure);
             if (const char* uri = gst_structure_get_string(structure, "uri")) {
                 URL url { String::fromLatin1(uri) };
-                m_origins.add(SecurityOrigin::create(url));
+                m_origins.add(SecurityOrigin::create(url, m_player->documentSecurityOrigin().securityOrigin()));
 
                 if (url != m_url) {
                     GST_DEBUG_OBJECT(pipeline(), "Ignoring HTTP response headers for non-main URI.");
@@ -2502,7 +2502,7 @@ bool MediaPlayerPrivateGStreamer::loadNextLocation()
         }
 
         changePipelineState(GST_STATE_READY);
-        auto securityOrigin = SecurityOrigin::create(m_url);
+        auto securityOrigin = SecurityOrigin::create(m_url, m_player->documentSecurityOrigin().securityOrigin());
         if (securityOrigin->canRequest(newUrl)) {
             GST_INFO_OBJECT(pipeline(), "New media url: %s", newUrl.string().utf8().data());
 

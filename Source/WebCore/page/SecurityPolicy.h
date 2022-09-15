@@ -44,12 +44,12 @@ public:
 
     // Returns the referrer's security origin plus a / to make it a canonical URL
     // and thus useable as referrer.
-    static String referrerToOriginString(const String& referrer);
+    static String referrerToOriginString(const String& referrer, const SecurityOrigin*);
 
     // Returns the referrer modified according to the referrer policy for a
     // navigation to a given URL. If the referrer returned is empty, the
     // referrer header should be omitted.
-    WEBCORE_EXPORT static String generateReferrerHeader(ReferrerPolicy, const URL&, const String& referrer);
+    WEBCORE_EXPORT static String generateReferrerHeader(ReferrerPolicy, const URL&, const String& referrer, const SecurityOrigin*);
 
     static String generateOriginHeader(ReferrerPolicy, const URL&, const SecurityOrigin&);
 

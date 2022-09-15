@@ -506,7 +506,7 @@ void FrameLoader::submitForm(Ref<FormSubmission>&& submission)
         m_submittedFormURL = submission->requestURL();
 
     submission->setReferrer(outgoingReferrer());
-    submission->setOrigin(SecurityPolicy::generateOriginHeader(m_frame.document()->referrerPolicy(), submission->requestURL(), m_frame.document()->securityOrigin()));
+    submission->setOrigin(SecurityPolicy::generateOriginHeader(m_frame.document()->referrerPolicy(), submission->requestURL(), m_frame.document()->securityOrigin(), &m_frame.document()->topOrigin()));
 
     targetFrame->navigationScheduler().scheduleFormSubmission(WTFMove(submission));
 }
@@ -1266,7 +1266,7 @@ void FrameLoader::loadFrameRequest(FrameLoadRequest&& request, Event* event, Ref
     ReferrerPolicy referrerPolicy = request.referrerPolicy();
     if (referrerPolicy == ReferrerPolicy::EmptyString)
         referrerPolicy = m_frame.document()->referrerPolicy();
-    String referrer = SecurityPolicy::generateReferrerHeader(referrerPolicy, url, argsReferrer);
+    String referrer = SecurityPolicy::generateReferrerHeader(referrerPolicy, url, argsReferrer, &m_frame.document.topOrigin());
 
     FrameLoadType loadType;
     if (request.resourceRequest().cachePolicy() == ResourceRequestCachePolicy::ReloadIgnoringCacheData)
@@ -2051,8 +2051,9 @@ void FrameLoader::commitProvisionalLoad()
     transitionToCommitted(cachedPage.get());
 
     if (pdl && m_documentLoader) {
+        auto* topOrigin = &m_documentLoader->document().topOrigin();
         // Check if the destination page is allowed to access the previous page's timing information.
-        Ref<SecurityOrigin> securityOrigin(SecurityOrigin::create(pdl->request().url()));
+        Ref<SecurityOrigin> securityOrigin(SecurityOrigin::create(pdl->request().url(), topOrigin));
         m_documentLoader->timing().setHasSameOriginAsPreviousDocument(securityOrigin.get().canRequest(m_previousURL));
     }
 
@@ -3130,7 +3131,7 @@ void FrameLoader::loadPostRequest(FrameLoadRequest&& request, const String& refe
 ResourceLoaderIdentifier FrameLoader::loadResourceSynchronously(const ResourceRequest& request, ClientCredentialPolicy clientCredentialPolicy, const FetchOptions& options, const HTTPHeaderMap& originalRequestHeaders, ResourceError& error, ResourceResponse& response, RefPtr<SharedBuffer>& data)
 {
     ASSERT(m_frame.document());
-    String referrer = SecurityPolicy::generateReferrerHeader(m_frame.document()->referrerPolicy(), request.url(), outgoingReferrer());
+    String referrer = SecurityPolicy::generateReferrerHeader(m_frame.document()->referrerPolicy(), request.url(), outgoingReferrer(), &m_frame->document().topOrigin());
     
     ResourceRequest initialRequest = request;
     initialRequest.setTimeoutInterval(10);
@@ -3723,7 +3724,7 @@ bool FrameLoader::shouldInterruptLoadForXFrameOptions(const String& content, con
 
     switch (disposition) {
     case XFrameOptionsDisposition::SameOrigin: {
-        auto origin = SecurityOrigin::create(url);
+        auto origin = SecurityOrigin::create(url, &topFrame.document()->topOrigin());
         if (!origin->isSameSchemeHostPort(topFrame.document()->securityOrigin()))
             return true;
         for (Frame* frame = m_frame.tree().parent(); frame; frame = frame->tree().parent()) {
@@ -3882,7 +3883,8 @@ void FrameLoader::loadDifferentDocumentItem(HistoryItem& item, HistoryItem* from
         request.setHTTPMethod("POST"_s);
         request.setHTTPBody(WTFMove(formData));
         request.setHTTPContentType(item.formContentType());
-        auto securityOrigin = SecurityOrigin::createFromString(item.referrer());
+        auto* topOrigin = m_frame.mainFrame().document() ? &m_frame.mainFrame().document()->topOrigin() : nullptr;
+        auto securityOrigin = SecurityOrigin::createFromString(item.referrer(), topOrigin);
         addHTTPOriginIfNeeded(request, securityOrigin->toString());
 
         updateRequestAndAddExtraFields(request, IsMainResource::Yes, loadType);
@@ -4196,7 +4198,7 @@ RefPtr<Frame> createWindow(Frame& openerFrame, Frame& lookupFrame, FrameLoadRequ
     }
 
     // FIXME: Setting the referrer should be the caller's responsibility.
-    String referrer = SecurityPolicy::generateReferrerHeader(openerFrame.document()->referrerPolicy(), request.resourceRequest().url(), openerFrame.loader().outgoingReferrer());
+    String referrer = SecurityPolicy::generateReferrerHeader(openerFrame.document()->referrerPolicy(), request.resourceRequest().url(), openerFrame.loader().outgoingReferrer(), &openerFrame.document()->topOrigin());
     if (!referrer.isEmpty())
         request.resourceRequest().setHTTPReferrer(referrer);
     FrameLoader::addSameSiteInfoToRequestIfNeeded(request.resourceRequest(), openerFrame.document());

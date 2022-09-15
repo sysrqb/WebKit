@@ -110,14 +110,15 @@ static xmlDocPtr docLoaderFunc(const xmlChar* uri,
 
         RefPtr<SharedBuffer> data;
 
-        bool requestAllowed = globalCachedResourceLoader->frame() && globalCachedResourceLoader->document()->securityOrigin().canRequest(url);
+        auto* document = globalCachedResourceLoader->document();
+        bool requestAllowed = globalCachedResourceLoader->frame() && document->securityOrigin().canRequest(url);
         if (requestAllowed) {
             FetchOptions options;
             options.mode = FetchOptions::Mode::SameOrigin;
             options.credentials = FetchOptions::Credentials::Include;
             globalCachedResourceLoader->frame()->loader().loadResourceSynchronously(url, ClientCredentialPolicy::MayAskClientForCredentials, options, { }, error, response, data);
             if (error.isNull())
-                requestAllowed = globalCachedResourceLoader->document()->securityOrigin().canRequest(response.url());
+                requestAllowed = document->securityOrigin().canRequest(response.url());
             else if (data)
                 data = nullptr;
         }

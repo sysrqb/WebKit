@@ -130,7 +130,7 @@ struct CrossOriginOpenerPolicyEnforcementResult {
     bool needsBrowsingContextGroupSwitchDueToReportOnly { false };
 };
 
-CrossOriginOpenerPolicy obtainCrossOriginOpenerPolicy(const ResourceResponse&);
+CrossOriginOpenerPolicy obtainCrossOriginOpenerPolicy(const ResourceResponse&, const SecurityOrigin&);
 WEBCORE_EXPORT void addCrossOriginOpenerPolicyHeaders(ResourceResponse&, const CrossOriginOpenerPolicy&);
 WEBCORE_EXPORT std::optional<CrossOriginOpenerPolicyEnforcementResult> doCrossOriginOpenerHandlingOfResponse(const ResourceResponse&, const std::optional<NavigationRequester>&, ContentSecurityPolicy* responseCSP, SandboxFlags effectiveSandboxFlags, bool isDisplayingInitialEmptyDocument, const CrossOriginOpenerPolicyEnforcementResult& currentCoopEnforcementResult);
 

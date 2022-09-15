@@ -70,25 +70,25 @@ void ThreadableBlobRegistry::registerFileBlobURL(const URL& url, const SecurityO
     String effectivePath = !replacementPath.isNull() ? replacementPath : path;
 
     if (isMainThread()) {
-        blobRegistry(topOrigin.data())->registerFileBlobURL(url, BlobDataFileReference::create(effectivePath), path, contentType);
+        blobRegistry(topOrigin)->registerFileBlobURL(url, BlobDataFileReference::create(effectivePath), path, contentType);
         return;
     }
 
     callOnMainThread([topOrigin = topOrigin.isolatedCopy(), url = url.isolatedCopy(), effectivePath = effectivePath.isolatedCopy(), path = path.isolatedCopy(), contentType = contentType.isolatedCopy()] {
-        blobRegistry(topOrigin->data())->registerFileBlobURL(url, BlobDataFileReference::create(effectivePath), path, contentType);
+        blobRegistry(topOrigin)->registerFileBlobURL(url, BlobDataFileReference::create(effectivePath), path, contentType);
     });
 }
 
 void ThreadableBlobRegistry::registerBlobURL(const URL& url, const SecurityOrigin& topOrigin, Vector<BlobPart>&& blobParts, const String& contentType)
 {
     if (isMainThread()) {
-        blobRegistry(topOrigin.data())->registerBlobURL(url, WTFMove(blobParts), contentType);
+        blobRegistry(topOrigin)->registerBlobURL(url, WTFMove(blobParts), contentType);
         return;
     }
     for (auto& part : blobParts)
         part.detachFromCurrentThread();
     callOnMainThread([topOrigin = topOrigin.isolatedCopy(), url = url.isolatedCopy(), blobParts = WTFMove(blobParts), contentType = contentType.isolatedCopy()]() mutable {
-        blobRegistry(topOrigin->data())->registerBlobURL(url, WTFMove(blobParts), contentType);
+        blobRegistry(topOrigin)->registerBlobURL(url, WTFMove(blobParts), contentType);
     });
 }
 
@@ -104,80 +104,80 @@ void ThreadableBlobRegistry::registerBlobURL(const SecurityOrigin& topOrigin, Se
 {
     // If the blob URL contains null origin, as in the context with unique security origin or file URL, save the mapping between url and origin so that the origin can be retrived when doing security origin check.
     if (origin && isBlobURLContainsNullOrigin(url))
-        originMap()->add(topOrigin.data(), BlobUrlOriginMap { }).add<StringViewHashTranslator>(url.viewWithoutFragmentIdentifier(), origin);
+        originMap()->add(topOrigin, BlobUrlOriginMap { }).add<StringViewHashTranslator>(url.viewWithoutFragmentIdentifier(), origin);
 
     if (isMainThread()) {
-        blobRegistry(topOrigin.data())->registerBlobURL(url, srcURL, policyContainer);
+        blobRegistry(topOrigin)->registerBlobURL(url, srcURL, policyContainer);
         return;
     }
 
     callOnMainThread([topOrigin = topOrigin.isolatedCopy(), url = url.isolatedCopy(), srcURL = srcURL.isolatedCopy(), policyContainer = crossThreadCopy(WTFMove(policyContainer))] {
-        blobRegistry(topOrigin->data())->registerBlobURL(url, srcURL, policyContainer);
+        blobRegistry(topOrigin)->registerBlobURL(url, srcURL, policyContainer);
     });
 }
 
 void ThreadableBlobRegistry::registerBlobURLOptionallyFileBacked(const URL& url, const SecurityOrigin& topOrigin, const URL& srcURL, const String& fileBackedPath, const String& contentType)
 {
     if (isMainThread()) {
-        blobRegistry(topOrigin.data())->registerBlobURLOptionallyFileBacked(url, srcURL, BlobDataFileReference::create(fileBackedPath), contentType);
+        blobRegistry(topOrigin)->registerBlobURLOptionallyFileBacked(url, srcURL, BlobDataFileReference::create(fileBackedPath), contentType);
         return;
     }
     callOnMainThread([topOrigin = topOrigin.isolatedCopy(), url = url.isolatedCopy(), srcURL = srcURL.isolatedCopy(), fileBackedPath = fileBackedPath.isolatedCopy(), contentType = contentType.isolatedCopy()] {
-        blobRegistry(topOrigin->data())->registerBlobURLOptionallyFileBacked(url, srcURL, BlobDataFileReference::create(fileBackedPath), contentType);
+        blobRegistry(topOrigin)->registerBlobURLOptionallyFileBacked(url, srcURL, BlobDataFileReference::create(fileBackedPath), contentType);
     });
 }
 
 void ThreadableBlobRegistry::registerBlobURLForSlice(const URL& newURL, const SecurityOrigin& topOrigin, const URL& srcURL, long long start, long long end, const String& contentType)
 {
     if (isMainThread()) {
-        blobRegistry(topOrigin.data())->registerBlobURLForSlice(newURL, srcURL, start, end, contentType);
+        blobRegistry(topOrigin)->registerBlobURLForSlice(newURL, srcURL, start, end, contentType);
         return;
     }
 
     callOnMainThread([topOrigin = topOrigin.isolatedCopy(), newURL = newURL.isolatedCopy(), srcURL = srcURL.isolatedCopy(), start, end, contentType = contentType.isolatedCopy()] {
-        blobRegistry(topOrigin->data())->registerBlobURLForSlice(newURL, srcURL, start, end, contentType);
+        blobRegistry(topOrigin)->registerBlobURLForSlice(newURL, srcURL, start, end, contentType);
     });
 }
 
 unsigned long long ThreadableBlobRegistry::blobSize(const URL& url, const SecurityOrigin& topOrigin)
 {
     if (isMainThread())
-        return blobRegistry(topOrigin.data())->blobSize(url);
+        return blobRegistry(topOrigin)->blobSize(url);
 
     unsigned long long resultSize;
     callOnMainThreadAndWait([topOrigin = topOrigin.isolatedCopy(), url = url.isolatedCopy(), &resultSize] {
-        resultSize = blobRegistry(topOrigin->data())->blobSize(url);
+        resultSize = blobRegistry(topOrigin)->blobSize(url);
     });
     return resultSize;
 }
 
 void ThreadableBlobRegistry::unregisterBlobURL(const URL& url, const SecurityOrigin& topOrigin)
 {
-    if (isBlobURLContainsNullOrigin(url) && (auto& partitionedMap = originMap()->get(topOrigin.data())))
+    if (isBlobURLContainsNullOrigin(url) && (auto& partitionedMap = originMap()->get(topOrigin)))
         partitionedMap.remove<StringViewHashTranslator>(url.viewWithoutFragmentIdentifier());
 
     ensureOnMainThread([topOrigin = topOrigin.isolatedCopy(), url = url.isolatedCopy()] {
-        blobRegistry(topOrigin->data())->unregisterBlobURL(url);
+        blobRegistry(topOrigin)->unregisterBlobURL(url);
     });
 }
 
 void ThreadableBlobRegistry::registerBlobURLHandle(const URL& url, const SecurityOrigin& topOrigin)
 {
     ensureOnMainThread([topOrigin = topOrigin.isolatedCopy(), url = url.isolatedCopy()] {
-        blobRegistry(topOrigin->data())->registerBlobURLHandle(url);
+        blobRegistry(topOrigin)->registerBlobURLHandle(url);
     });
 }
 
 void ThreadableBlobRegistry::unregisterBlobURLHandle(const URL& url, const SecurityOrigin& topOrigin)
 {
     ensureOnMainThread([topOrigin = topOrigin.isolatedCopy(), url = url.isolatedCopy()] {
-        blobRegistry(topOrigin->data())->unregisterBlobURLHandle(url);
+        blobRegistry(topOrigin)->unregisterBlobURLHandle(url);
     });
 }
 
 RefPtr<SecurityOrigin> ThreadableBlobRegistry::getCachedOrigin(const URL& url, const SecurityOrigin& topOrigin)
 {
-    if (auto& partitionedMap = originMap()->get(topOrigin.data())) {
+    if (auto& partitionedMap = originMap()->get(topOrigin)) {
         if (auto cachedOrigin = partitionedMap.get<StringViewHashTranslator>(url.viewWithoutFragmentIdentifier()))
             return cachedOrigin;
     }

@@ -91,7 +91,7 @@ static unsigned urlHostHash(const URL& url)
     return AlreadyHashed::avoidDeletedValue(StringHasher::computeHashAndMaskTop8Bits(host.characters16(), host.length()));
 }
 
-ApplicationCacheGroup* ApplicationCacheStorage::loadCacheGroup(const URL& manifestURL)
+ApplicationCacheGroup* ApplicationCacheStorage::loadCacheGroup(const URL& manifestURL, const SecurityOrigin* topOrigin)
 {
     SQLiteTransactionInProgressAutoCounter transactionCounter;
 
@@ -120,13 +120,13 @@ ApplicationCacheGroup* ApplicationCacheStorage::loadCacheGroup(const URL& manife
     if (!cache)
         return nullptr;
         
-    auto& group = *new ApplicationCacheGroup(*this, manifestURL);
+    auto& group = *new ApplicationCacheGroup(*this, manifestURL, topOrigin);
     group.setStorageID(static_cast<unsigned>(statement->columnInt64(0)));
     group.setNewestCache(cache.releaseNonNull());
     return &group;
 }    
 
-ApplicationCacheGroup* ApplicationCacheStorage::findOrCreateCacheGroup(const URL& manifestURL)
+ApplicationCacheGroup* ApplicationCacheStorage::findOrCreateCacheGroup(const URL& manifestURL, const SecurityOrigin* topOrigin)
 {
     ASSERT(!manifestURL.hasFragmentIdentifier());
 
@@ -137,11 +137,11 @@ ApplicationCacheGroup* ApplicationCacheStorage::findOrCreateCacheGroup(const URL
     }
 
     // Look up the group in the database
-    auto* group = loadCacheGroup(manifestURL);
+    auto* group = loadCacheGroup(manifestURL, topOrigin);
     
     // If the group was not found we need to create it
     if (!group) {
-        group = new ApplicationCacheGroup(*this, manifestURL);
+        group = new ApplicationCacheGroup(*this, manifestURL, topOrigin);
         m_cacheHostSet.add(urlHostHash(manifestURL));
     }
 
@@ -240,7 +240,7 @@ ApplicationCacheGroup* ApplicationCacheStorage::cacheGroupForURL(const URL& url)
         if (resource->type() & ApplicationCacheResource::Foreign)
             continue;
 
-        auto& group = *new ApplicationCacheGroup(*this, manifestURL);
+        auto& group = *new ApplicationCacheGroup(*this, manifestURL, nullptr);
         group.setStorageID(static_cast<unsigned>(statement->columnInt64(0)));
         group.setNewestCache(cache.releaseNonNull());
         m_cachesInMemory.set(group.manifestURL().string(), &group);
@@ -308,7 +308,7 @@ ApplicationCacheGroup* ApplicationCacheStorage::fallbackCacheGroupForURL(const U
         if (cache->resourceForURL(fallbackURL.string())->type() & ApplicationCacheResource::Foreign)
             continue;
 
-        auto& group = *new ApplicationCacheGroup(*this, manifestURL);
+        auto& group = *new ApplicationCacheGroup(*this, manifestURL, nullptr);
         group.setStorageID(static_cast<unsigned>(statement->columnInt64(0)));
         group.setNewestCache(cache.releaseNonNull());
 

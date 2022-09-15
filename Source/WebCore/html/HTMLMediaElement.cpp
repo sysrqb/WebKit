@@ -7240,7 +7240,7 @@ String HTMLMediaElement::mediaPlayerReferrer() const
     if (!frame)
         return String();
 
-    return SecurityPolicy::generateReferrerHeader(document().referrerPolicy(), m_currentSrc, frame->loader().outgoingReferrer());
+    return SecurityPolicy::generateReferrerHeader(document().referrerPolicy(), m_currentSrc, frame->loader().outgoingReferrer(), &document->topOrigin());
 }
 
 String HTMLMediaElement::mediaPlayerUserAgent() const

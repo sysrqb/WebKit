@@ -366,7 +366,7 @@ void ResourceHandle::restartRequestWithCredential(const ProtectionSpace& protect
     d->m_curlRequest->start();
 }
 
-void ResourceHandle::platformLoadResourceSynchronously(NetworkingContext* context, const ResourceRequest& request, StoredCredentialsPolicy storedCredentialsPolicy, SecurityOrigin*, ResourceError& error, ResourceResponse& response, Vector<uint8_t>& data)
+void ResourceHandle::platformLoadResourceSynchronously(NetworkingContext* context, const ResourceRequest& request, StoredCredentialsPolicy storedCredentialsPolicy, SecurityOrigin*, SecurityOrigin*, ResourceError& error, ResourceResponse& response, Vector<uint8_t>& data)
 {
     ASSERT(isMainThread());
     ASSERT(!request.isEmpty());

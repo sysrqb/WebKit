@@ -141,7 +141,8 @@ ResourceError ServiceWorkerJob::validateServiceWorkerResponse(const ServiceWorke
         maxScopeString = path.left(path.reverseFind('/') + 1).toString();
     } else {
         auto maxScope = URL(jobData.scriptURL, serviceWorkerAllowed);
-        if (SecurityOrigin::create(maxScope)->isSameOriginAs(SecurityOrigin::create(jobData.scriptURL)))
+        auto topOrigin = jobData.topOrigin.securityOrigin();
+        if (SecurityOrigin::create(maxScope, topOrigin.ptr())->isSameOriginAs(SecurityOrigin::create(jobData.scriptURL, topOrigin.ptr())))
             maxScopeString = maxScope.path().toString();
     }
 

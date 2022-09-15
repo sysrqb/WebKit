@@ -3347,7 +3347,7 @@ private:
         if (!m_canCreateDOMObject)
             return constructEmptyObject(m_lexicalGlobalObject, m_globalObject->objectPrototype());
 
-        auto rtcCertificate = RTCCertificate::create(SecurityOrigin::createFromString(origin->string()), expires, WTFMove(fingerprints), certificate->takeString(), keyedMaterial->takeString());
+        auto rtcCertificate = RTCCertificate::create(SecurityOrigin::createFromString(origin->string(), nullptr), expires, WTFMove(fingerprints), certificate->takeString(), keyedMaterial->takeString());
         return toJSNewlyCreated(m_lexicalGlobalObject, jsCast<JSDOMGlobalObject*>(m_globalObject), WTFMove(rtcCertificate));
     }
 

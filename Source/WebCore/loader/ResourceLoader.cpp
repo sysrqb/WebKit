@@ -255,14 +255,17 @@ void ResourceLoader::start()
 #endif
 
     RefPtr<SecurityOrigin> sourceOrigin = is<SubresourceLoader>(*this) ? downcast<SubresourceLoader>(*this).origin() : nullptr;
+    RefPtr<SecurityOrigin> topOrigin;
     if (!sourceOrigin && frameLoader()) {
         auto* document = frameLoader()->frame().document();
         sourceOrigin =  document ? &document->securityOrigin() : nullptr;
+        topOrigin =  document ? &document->topOrigin() : nullptr;
     }
+
 
     bool isMainFrameNavigation = frame() && frame()->isMainFrame() && options().mode == FetchOptions::Mode::Navigate;
 
-    m_handle = ResourceHandle::create(frameLoader()->networkingContext(), m_request, this, m_defersLoading, m_options.sniffContent == ContentSniffingPolicy::SniffContent, m_options.sniffContentEncoding == ContentEncodingSniffingPolicy::Sniff, WTFMove(sourceOrigin), isMainFrameNavigation);
+    m_handle = ResourceHandle::create(frameLoader()->networkingContext(), m_request, this, m_defersLoading, m_options.sniffContent == ContentSniffingPolicy::SniffContent, m_options.sniffContentEncoding == ContentEncodingSniffingPolicy::Sniff, WTFMove(sourceOrigin), WTFMove(topOrigin), isMainFrameNavigation);
 }
 
 void ResourceLoader::setDefersLoading(bool defers)

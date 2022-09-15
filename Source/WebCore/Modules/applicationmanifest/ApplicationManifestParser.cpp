@@ -125,8 +125,8 @@ URL ApplicationManifestParser::parseStartURL(const JSON::Object& manifest, const
     }
 
     if (!protocolHostAndPortAreEqual(startURL, documentURL)) {
-        auto startURLOrigin = SecurityOrigin::create(startURL);
-        auto documentOrigin = SecurityOrigin::create(documentURL);
+        auto startURLOrigin = SecurityOrigin::create(startURL, nullptr);
+        auto documentOrigin = SecurityOrigin::create(documentURL, nullptr);
         logDeveloperWarning(makeString("The start_url's origin of \""_s, startURLOrigin->toString(), "\" is different from the document's origin of \""_s, documentOrigin->toString(), "\"."_s));
         return documentURL;
     }
@@ -303,8 +303,8 @@ URL ApplicationManifestParser::parseScope(const JSON::Object& manifest, const UR
     }
 
     if (!protocolHostAndPortAreEqual(scopeURL, documentURL)) {
-        auto scopeURLOrigin = SecurityOrigin::create(scopeURL);
-        auto documentOrigin = SecurityOrigin::create(documentURL);
+        auto scopeURLOrigin = SecurityOrigin::create(scopeURL, nullptr);
+        auto documentOrigin = SecurityOrigin::create(documentURL, nullptr);
         logDeveloperWarning(makeString("The scope's origin of \""_s, scopeURLOrigin->toString(), "\" is different from the document's origin of \""_s, documentOrigin->toString(), "\"."_s));
         return defaultScope;
     }

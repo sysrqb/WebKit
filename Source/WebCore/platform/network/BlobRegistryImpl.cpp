@@ -55,12 +55,12 @@ BlobRegistryImpl::~BlobRegistryImpl() = default;
 
 static Ref<ResourceHandle> createBlobResourceHandle(const ResourceRequest& request, const SecurityOrigin& topOrigin, ResourceHandleClient* client)
 {
-    return blobRegistry()->blobRegistryImpl()->createResourceHandle(request, topOrigin, client);
+    return blobRegistry(topOrigin)->blobRegistryImpl()->createResourceHandle(request, topOrigin, client);
 }
 
 static void loadBlobResourceSynchronously(NetworkingContext*, const ResourceRequest& request, const SecurityOrigin& topOrigin, StoredCredentialsPolicy, ResourceError& error, ResourceResponse& response, Vector<uint8_t>& data)
 {
-    auto* blobData = blobRegistry()->blobRegistryImpl()->getBlobDataFromURL(request.url(), topOrigin);
+    auto* blobData = blobRegistry(topOrigin)->blobRegistryImpl()->getBlobDataFromURL(request.url(), topOrigin);
     BlobResourceHandle::loadResourceSynchronously(blobData, request, error, response, data);
 }
 
@@ -143,7 +143,7 @@ void BlobRegistryImpl::registerBlobURL(const URL& url, const SecurityOrigin& top
             break;
         }
         case BlobPart::Type::Blob: {
-            auto it = m_blobs.find(topOrigin);
+            auto it = m_blobs.find(Ref { topOrigin });
             if (it != m_blobs.end()) {
                 auto& urlMap = it->value;
                 if (auto blob = urlMap.get(part.url().string()))
@@ -228,10 +228,10 @@ void BlobRegistryImpl::registerBlobURLForSlice(const URL& url, const SecurityOri
 void BlobRegistryImpl::unregisterBlobURL(const URL& url, const SecurityOrigin& topOrigin)
 {
     ASSERT(isMainThread());
-    auto key = std::make_pair(topOrigin, url.string());
+    auto key = std::make_pair(Ref { topOrigin }, url.string());
     if (m_blobReferences.remove(key)) {
     //if (m_blobReferences.remove({ topOrigin, url.string() })) {
-        auto it = m_blobs.find(topOrigin);
+        auto it = m_blobs.find(Ref { topOrigin });
         if (it != m_blobs.end()) {
             auto& urlMap = it->value;
             urlMap.remove(url.string());
@@ -244,7 +244,7 @@ void BlobRegistryImpl::unregisterBlobURL(const URL& url, const SecurityOrigin& t
 BlobData* BlobRegistryImpl::getBlobDataFromURL(const URL& url, const SecurityOrigin& topOrigin) const
 {
     ASSERT(isMainThread());
-    auto it = m_blobs.find(topOrigin);
+    auto it = m_blobs.find(Ref { topOrigin });
     if (it == m_blobs.end())
        return nullptr;
     auto& urlMap = it->value;
@@ -387,30 +387,33 @@ Vector<RefPtr<BlobDataFileReference>> BlobRegistryImpl::filesInBlob(const URL& u
 
 void BlobRegistryImpl::addBlobData(const String& url, const SecurityOrigin& topOrigin, RefPtr<BlobData>&& blobData)
 {
-    auto addResult = m_blobs.add(topOrigin, URLBlobMap { }).iterator->value.set(url, WTFMove(blobData));
+    auto addResult = m_blobs.add(Ref { topOrigin }, URLBlobMap { }).iterator->value.set(url, WTFMove(blobData));
+    auto key = std::make_pair(Ref { topOrigin }, url);
     if (addResult.isNewEntry)
-        m_blobReferences.add({topOrigin, url });
+        m_blobReferences.add(key);
 }
 
 void BlobRegistryImpl::registerBlobURLHandle(const URL& url, const SecurityOrigin& topOrigin)
 {
     auto urlKey = url.stringWithoutFragmentIdentifier();
-    auto it = m_blobs.find(topOrigin);
+    auto it = m_blobs.find(Ref { topOrigin });
     if (it == m_blobs.end())
         return;
     auto& urlMap = it->value;
+    auto key = std::make_pair(Ref { topOrigin }, urlKey);
     if (urlMap.contains(urlKey))
-        m_blobReferences.add({ topOrigin, urlKey });
+        m_blobReferences.add(key);
 }
 
 void BlobRegistryImpl::unregisterBlobURLHandle(const URL& url, const SecurityOrigin& topOrigin)
 {
-    auto it = m_blobs.find(topOrigin);
+    auto it = m_blobs.find(Ref { topOrigin });
     if (it == m_blobs.end())
         return;
     auto& urlMap = it->value;
     auto urlKey = url.stringWithoutFragmentIdentifier();
-    if (m_blobReferences.remove({ topOrigin, urlKey }))
+    auto key = std::make_pair(Ref { topOrigin }, urlKey);
+    if (m_blobReferences.remove(key))
         urlMap.remove(urlKey);
 }
 

@@ -54,10 +54,10 @@
 
 namespace WebCore {
 
-ApplicationCacheGroup::ApplicationCacheGroup(Ref<ApplicationCacheStorage>&& storage, const URL& manifestURL)
+ApplicationCacheGroup::ApplicationCacheGroup(Ref<ApplicationCacheStorage>&& storage, const URL& manifestURL, const SecurityOrigin* topOrigin)
     : m_storage(WTFMove(storage))
     , m_manifestURL(manifestURL)
-    , m_origin(SecurityOrigin::create(manifestURL))
+    , m_origin(SecurityOrigin::create(manifestURL, topOrigin))
     , m_availableSpaceInQuota(ApplicationCacheStorage::unknownQuota())
 {
 }
@@ -190,7 +190,7 @@ void ApplicationCacheGroup::selectCache(Frame& frame, const URL& passedManifestU
     if (!protocolHostAndPortAreEqual(manifestURL, request.url()))
         return;
 
-    auto& group = *frame.page()->applicationCacheStorage().findOrCreateCacheGroup(manifestURL);
+    auto& group = *frame.page()->applicationCacheStorage().findOrCreateCacheGroup(manifestURL, &frame.mainFrame().document()->topOrigin());
 
     documentLoader.applicationCacheHost().setCandidateApplicationCacheGroup(&group);
     group.m_pendingMasterResourceLoaders.add(&documentLoader);

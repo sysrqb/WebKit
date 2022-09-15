@@ -52,7 +52,7 @@ CrossOriginEmbedderPolicy obtainCrossOriginEmbedderPolicy(const ResourceResponse
     CrossOriginEmbedderPolicy policy;
     if (context && !context->settingsValues().crossOriginEmbedderPolicyEnabled)
         return policy;
-    if (!SecurityOrigin::create(response.url())->isPotentiallyTrustworthy())
+    if (!SecurityOrigin::create(response.url(), &context->topOrigin())->isPotentiallyTrustworthy())
         return policy;
 
     parseCOEPHeader(HTTPHeaderName::CrossOriginEmbedderPolicy, policy.value, policy.reportingEndpoint);

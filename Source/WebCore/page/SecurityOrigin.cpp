@@ -84,10 +84,10 @@ URL SecurityOrigin::extractInnerURL(const URL& url)
     return URL { PAL::decodeURLEscapeSequences(url.path()) };
 }
 
-static RefPtr<SecurityOrigin> getCachedOrigin(const URL& url)
+static RefPtr<SecurityOrigin> getCachedOrigin(const URL& url, const SecurityOrigin* topOrigin)
 {
-    if (url.protocolIsBlob())
-        return ThreadableBlobRegistry::getCachedOrigin(url);
+    if (url.protocolIsBlob() && topOrigin)
+        return ThreadableBlobRegistry::getCachedOrigin(url, *topOrigin);
     return nullptr;
 }
 
@@ -158,8 +158,7 @@ static bool shouldTreatAsPotentiallyTrustworthy(StringView protocol, StringView 
     if (LegacySchemeRegistry::shouldTreatURLSchemeAsSecure(protocol))
         return true;
 
-    if (SecurityOrigin::isLocalHostOrLoopbackIPAddress(host))
-        return true;
+    if (SecurityOrigin::isLocalHostOrLoopbackIPAddress(host)) return true;
 
     if (LegacySchemeRegistry::shouldTreatURLSchemeAsLocal(protocol))
         return true;
@@ -175,9 +174,10 @@ bool shouldTreatAsPotentiallyTrustworthy(const URL& url)
     return shouldTreatAsPotentiallyTrustworthy(url.protocol(), url.host());
 }
 
-SecurityOrigin::SecurityOrigin(const URL& url)
+SecurityOrigin::SecurityOrigin(const URL& url, const SecurityOrigin* topOrigin)
     : m_data(SecurityOriginData::fromURL(url))
     , m_isLocal(LegacySchemeRegistry::shouldTreatURLSchemeAsLocal(m_data.protocol))
+    , m_topOrigin { topOrigin }
 {
     // document.domain starts as m_data.host, but can be set by the DOM.
     m_domain = m_data.host;
@@ -197,6 +197,7 @@ SecurityOrigin::SecurityOrigin()
     , m_domain { emptyString() }
     , m_uniqueOriginIdentifier { UniqueOriginIdentifier::generateThreadSafe() }
     , m_isPotentiallyTrustworthy { false }
+    , m_topOrigin { nullptr }
 {
 }
 
@@ -212,21 +213,22 @@ SecurityOrigin::SecurityOrigin(const SecurityOrigin* other)
     , m_needsStorageAccessFromFileURLsQuirk { other->m_needsStorageAccessFromFileURLsQuirk }
     , m_isPotentiallyTrustworthy { other->m_isPotentiallyTrustworthy }
     , m_isLocal { other->m_isLocal }
+    , m_topOrigin { other->m_topOrigin }
 {
 }
 
-Ref<SecurityOrigin> SecurityOrigin::create(const URL& url)
+Ref<SecurityOrigin> SecurityOrigin::create(const URL& url, const SecurityOrigin* topOrigin)
 {
-    if (RefPtr<SecurityOrigin> cachedOrigin = getCachedOrigin(url))
+    if (RefPtr<SecurityOrigin> cachedOrigin = getCachedOrigin(url, topOrigin))
         return cachedOrigin.releaseNonNull();
 
     if (shouldTreatAsUniqueOrigin(url))
         return adoptRef(*new SecurityOrigin);
 
     if (shouldUseInnerURL(url))
-        return adoptRef(*new SecurityOrigin(extractInnerURL(url)));
+        return adoptRef(*new SecurityOrigin(extractInnerURL(url), topOrigin));
 
-    return adoptRef(*new SecurityOrigin(url));
+    return adoptRef(*new SecurityOrigin(url, topOrigin));
 }
 
 Ref<SecurityOrigin> SecurityOrigin::createUnique()
@@ -236,10 +238,10 @@ Ref<SecurityOrigin> SecurityOrigin::createUnique()
     return origin;
 }
 
-Ref<SecurityOrigin> SecurityOrigin::createNonLocalWithAllowedFilePath(const URL& url, const String& filePath)
+Ref<SecurityOrigin> SecurityOrigin::createNonLocalWithAllowedFilePath(const URL& url, const String& filePath, const SecurityOrigin* topOrigin)
 {
     ASSERT(!url.isLocalFile());
-    auto securityOrigin = SecurityOrigin::create(url);
+    auto securityOrigin = SecurityOrigin::create(url, topOrigin);
     securityOrigin->m_filePath = filePath;
     return securityOrigin;
 }
@@ -328,13 +330,13 @@ bool SecurityOrigin::canRequest(const URL& url) const
     if (m_universalAccess)
         return true;
 
-    if (getCachedOrigin(url) == this)
+    if (getCachedOrigin(url, m_topOrigin.get()) == this)
         return true;
 
     if (isUnique())
         return false;
 
-    Ref<SecurityOrigin> targetOrigin(SecurityOrigin::create(url));
+    Ref<SecurityOrigin> targetOrigin(SecurityOrigin::create(url, m_topOrigin.get()));
 
     if (targetOrigin->isUnique())
         return false;
@@ -557,15 +559,15 @@ bool serializedOriginsMatch(const SecurityOrigin* origin1, const SecurityOrigin*
     return serializedOriginsMatch(*origin1, *origin2);
 }
 
-Ref<SecurityOrigin> SecurityOrigin::createFromString(const String& originString)
+Ref<SecurityOrigin> SecurityOrigin::createFromString(const String& originString, const SecurityOrigin* topOrigin)
 {
-    return SecurityOrigin::create(URL { originString });
+    return SecurityOrigin::create(URL { originString }, topOrigin);
 }
 
-Ref<SecurityOrigin> SecurityOrigin::create(const String& protocol, const String& host, std::optional<uint16_t> port)
+Ref<SecurityOrigin> SecurityOrigin::create(const String& protocol, const String& host, std::optional<uint16_t> port, const SecurityOrigin* topOrigin)
 {
     String decodedHost = PAL::decodeURLEscapeSequences(host);
-    auto origin = create(URL { protocol + "://" + host + "/" });
+    auto origin = create(URL { protocol + "://" + host + "/" }, topOrigin);
     if (port && !WTF::isDefaultPortForProtocol(*port, protocol))
         origin->m_data.port = port;
     return origin;

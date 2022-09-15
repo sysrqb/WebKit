@@ -86,6 +86,7 @@ class ResourceResponse;
 class SecurityOrigin;
 class FragmentedSharedBuffer;
 class SynchronousLoaderMessageQueue;
+class ScriptExecutionContext;
 class Timer;
 
 #if USE(CURL)
@@ -95,8 +96,8 @@ class CurlResourceHandleDelegate;
 
 class ResourceHandle : public RefCounted<ResourceHandle>, public AuthenticationClient {
 public:
-    WEBCORE_EXPORT static RefPtr<ResourceHandle> create(NetworkingContext*, const ResourceRequest&, ResourceHandleClient*, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff, RefPtr<SecurityOrigin>&& sourceOrigin, bool isMainFrameNavigation);
-    WEBCORE_EXPORT static void loadResourceSynchronously(NetworkingContext*, const ResourceRequest&, ScriptExecutionEnvironment*, StoredCredentialsPolicy, SecurityOrigin*, ResourceError&, ResourceResponse&, Vector<uint8_t>& data);
+    WEBCORE_EXPORT static RefPtr<ResourceHandle> create(NetworkingContext*, const ResourceRequest&, ResourceHandleClient*, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff, RefPtr<SecurityOrigin>&& sourceOrigin, RefPtr<SecurityOrigin>& topOrigin, bool isMainFrameNavigation);
+    WEBCORE_EXPORT static void loadResourceSynchronously(NetworkingContext*, const ResourceRequest&, ScriptExecutionContext*, StoredCredentialsPolicy, ResourceError&, ResourceResponse&, Vector<uint8_t>& data);
     WEBCORE_EXPORT virtual ~ResourceHandle();
 
 #if PLATFORM(COCOA) || USE(CFURLCONNECTION)
@@ -126,6 +127,7 @@ public:
     id makeDelegate(bool, RefPtr<SynchronousLoaderMessageQueue>&&);
     id delegate();
     void releaseDelegate();
+    RefPtr<SecurityOrigin> topOrigin() const;
 #endif
 
 #if PLATFORM(COCOA)
@@ -202,14 +204,14 @@ public:
     WEBCORE_EXPORT static CFStringRef synchronousLoadRunLoopMode();
 #endif
 
-    typedef Ref<ResourceHandle> (*BuiltinConstructor)(const ResourceRequest& request, ResourceHandleClient* client);
+    typedef Ref<ResourceHandle> (*BuiltinConstructor)(const ResourceRequest&, const SecurityOrigin&, ResourceHandleClient*);
     static void registerBuiltinConstructor(const AtomString& protocol, BuiltinConstructor);
 
-    typedef void (*BuiltinSynchronousLoader)(NetworkingContext*, const ResourceRequest&, StoredCredentialsPolicy, ResourceError&, ResourceResponse&, Vector<uint8_t>& data);
+    typedef void (*BuiltinSynchronousLoader)(NetworkingContext*, const ResourceRequest&, const SecurityOrigin&, StoredCredentialsPolicy, ResourceError&, ResourceResponse&, Vector<uint8_t>& data);
     static void registerBuiltinSynchronousLoader(const AtomString& protocol, BuiltinSynchronousLoader);
 
 protected:
-    ResourceHandle(NetworkingContext*, const ResourceRequest&, ResourceHandleClient*, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff, RefPtr<SecurityOrigin>&& sourceOrigin, bool isMainFrameNavigation);
+    ResourceHandle(NetworkingContext*, const ResourceRequest&, ResourceHandleClient*, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff, RefPtr<SecurityOrigin>&& sourceOrigin, RefPtr<SecurityOrigin>&& topOrigin, bool isMainFrameNavigation);
 
 private:
     enum FailureType {
@@ -225,7 +227,7 @@ private:
     void scheduleFailure(FailureType);
 
     bool start();
-    static void platformLoadResourceSynchronously(NetworkingContext*, const ResourceRequest&, StoredCredentialsPolicy, SecurityOrigin*, ResourceError&, ResourceResponse&, Vector<uint8_t>& data);
+    static void platformLoadResourceSynchronously(NetworkingContext*, const ResourceRequest&, StoredCredentialsPolicy, SecurityOrigin*, SecurityOrigin*, ResourceError&, ResourceResponse&, Vector<uint8_t>& data);
 
     void refAuthenticationClient() override { ref(); }
     void derefAuthenticationClient() override { deref(); }

@@ -86,7 +86,7 @@ public:
 
 WorkerThreadStartupData::WorkerThreadStartupData(const WorkerParameters& other, const ScriptBuffer& sourceCode, WorkerThreadStartMode startMode, const SecurityOrigin& topOrigin)
     : params(other.isolatedCopy())
-    , origin(SecurityOrigin::create(other.scriptURL)->isolatedCopy())
+    , origin(SecurityOrigin::create(other.scriptURL, &topOrigin)->isolatedCopy())
     , sourceCode(sourceCode.isolatedCopy())
     , startMode(startMode)
     , topOrigin(topOrigin.isolatedCopy())

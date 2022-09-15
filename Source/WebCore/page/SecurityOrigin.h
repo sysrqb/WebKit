@@ -46,17 +46,17 @@ public:
         Ask
     };
 
-    WEBCORE_EXPORT static Ref<SecurityOrigin> create(const URL&);
+    WEBCORE_EXPORT static Ref<SecurityOrigin> create(const URL&, const SecurityOrigin* = nullptr);
     WEBCORE_EXPORT static Ref<SecurityOrigin> createUnique();
 
-    WEBCORE_EXPORT static Ref<SecurityOrigin> createFromString(const String&);
-    WEBCORE_EXPORT static Ref<SecurityOrigin> create(const String& protocol, const String& host, std::optional<uint16_t> port);
+    WEBCORE_EXPORT static Ref<SecurityOrigin> createFromString(const String&, const SecurityOrigin* = nullptr);
+    WEBCORE_EXPORT static Ref<SecurityOrigin> create(const String& protocol, const String& host, std::optional<uint16_t> port, const SecurityOrigin* = nullptr);
 
     // QuickLook documents are in non-local origins even when loaded from file: URLs. They need to
     // be allowed to display their own file: URLs in order to perform reloads and same-document
     // navigations. This lets those documents specify the file path that should be allowed to be
     // displayed from their non-local origin.
-    static Ref<SecurityOrigin> createNonLocalWithAllowedFilePath(const URL&, const String& filePath);
+    static Ref<SecurityOrigin> createNonLocalWithAllowedFilePath(const URL&, const String& filePath, const SecurityOrigin* topOrigin = nullptr);
 
     // Some URL schemes use nested URLs for their security context. For example,
     // filesystem URLs look like the following:
@@ -214,7 +214,7 @@ public:
 
 private:
     WEBCORE_EXPORT SecurityOrigin();
-    explicit SecurityOrigin(const URL&);
+    explicit SecurityOrigin(const URL&, const SecurityOrigin*);
     explicit SecurityOrigin(const SecurityOrigin*);
 
     // FIXME: Rename this function to something more semantic.
@@ -241,6 +241,7 @@ private:
     bool m_needsStorageAccessFromFileURLsQuirk { false };
     mutable std::optional<bool> m_isPotentiallyTrustworthy;
     bool m_isLocal { false };
+    const RefPtr<const SecurityOrigin> m_topOrigin;
 };
 
 bool shouldTreatAsPotentiallyTrustworthy(const URL&);
@@ -301,6 +302,12 @@ template<class Decoder> inline RefPtr<SecurityOrigin> SecurityOrigin::decode(Dec
 inline void add(Hasher& hasher, const SecurityOrigin& origin)
 {
     add(hasher, origin.protocol(), origin.host(), origin.port());
+}
+
+bool operator==(const SecurityOrigin& a, const SecurityOrigin& b);
+bool operator==(const SecurityOrigin& a, const SecurityOrigin& b)
+{
+    return a.equal(&b);
 }
 
 } // namespace WebCore

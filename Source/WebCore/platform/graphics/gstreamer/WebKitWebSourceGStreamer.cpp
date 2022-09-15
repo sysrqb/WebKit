@@ -1005,7 +1005,7 @@ void CachedResourceStreamingClient::responseReceived(PlatformMediaResource&, con
     GST_DEBUG_OBJECT(src, "R%u: Received response: %d", m_requestNumber, response.httpStatusCode());
 
     members->didPassAccessControlCheck = members->resource->didPassAccessControlCheck();
-    m_origins.add(SecurityOrigin::create(response.url()));
+    m_origins.add(SecurityOrigin::create(response.url(), nullptr));
 
     auto responseURI = response.url().string().utf8();
     if (priv->originalURI != responseURI)

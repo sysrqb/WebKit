@@ -79,9 +79,9 @@ bool SecurityPolicy::shouldHideReferrer(const URL& url, const String& referrer)
     return !URLIsSecureURL;
 }
 
-String SecurityPolicy::referrerToOriginString(const String& referrer)
+String SecurityPolicy::referrerToOriginString(const String& referrer, const SecurityOrigin* topOrigin)
 {
-    String originString = SecurityOrigin::createFromString(referrer)->toString();
+    String originString = SecurityOrigin::createFromString(referrer, topOrigin)->toString();
     if (originString == "null"_s)
         return String();
     // A security origin is not a canonical URL as it lacks a path. Add /
@@ -89,10 +89,10 @@ String SecurityPolicy::referrerToOriginString(const String& referrer)
     return originString + "/";
 }
 
-String SecurityPolicy::generateReferrerHeader(ReferrerPolicy referrerPolicy, const URL& url, const String& referrer)
+String SecurityPolicy::generateReferrerHeader(ReferrerPolicy referrerPolicy, const URL& url, const String& referrer, const SecurityOrigin* topOrigin)
 {
     ASSERT(referrer == URL { referrer }.strippedForUseAsReferrer()
-        || referrer == SecurityOrigin::create(URL { referrer })->toString());
+        || referrer == SecurityOrigin::create(URL { referrer }, topOrigin)->toString());
 
     if (referrer.isEmpty())
         return String();
@@ -109,29 +109,29 @@ String SecurityPolicy::generateReferrerHeader(ReferrerPolicy referrerPolicy, con
     case ReferrerPolicy::NoReferrerWhenDowngrade:
         break;
     case ReferrerPolicy::SameOrigin: {
-        auto origin = SecurityOrigin::createFromString(referrer);
+        auto origin = SecurityOrigin::createFromString(referrer, topOrigin);
         if (!origin->canRequest(url))
             return String();
         break;
     }
     case ReferrerPolicy::Origin:
-        return referrerToOriginString(referrer);
+        return referrerToOriginString(referrer, topOrigin);
     case ReferrerPolicy::StrictOrigin:
         if (shouldHideReferrer(url, referrer))
             return String();
-        return referrerToOriginString(referrer);
+        return referrerToOriginString(referrer, topOrigin);
     case ReferrerPolicy::OriginWhenCrossOrigin: {
-        auto origin = SecurityOrigin::createFromString(referrer);
+        auto origin = SecurityOrigin::createFromString(referrer, topOrigin);
         if (!origin->canRequest(url))
-            return referrerToOriginString(referrer);
+            return referrerToOriginString(referrer, topOrigin);
         break;
     }
     case ReferrerPolicy::StrictOriginWhenCrossOrigin: {
-        auto origin = SecurityOrigin::createFromString(referrer);
+        auto origin = SecurityOrigin::createFromString(referrer, topOrigin);
         if (!origin->canRequest(url)) {
             if (shouldHideReferrer(url, referrer))
                 return String();
-            return referrerToOriginString(referrer);
+            return referrerToOriginString(referrer, topOrigin);
         }
         break;
     }

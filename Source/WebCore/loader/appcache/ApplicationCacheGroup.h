@@ -53,7 +53,7 @@ class ApplicationCacheGroup : public CanMakeWeakPtr<ApplicationCacheGroup> {
     WTF_MAKE_NONCOPYABLE(ApplicationCacheGroup);
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    explicit ApplicationCacheGroup(Ref<ApplicationCacheStorage>&&, const URL& manifestURL);
+    explicit ApplicationCacheGroup(Ref<ApplicationCacheStorage>&&, const URL& manifestURL, const SecurityOrigin*);
     virtual ~ApplicationCacheGroup();
     
     enum UpdateStatus { Idle, Checking, Downloading };

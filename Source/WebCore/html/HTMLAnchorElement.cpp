@@ -342,7 +342,7 @@ AtomString HTMLAnchorElement::target() const
 
 String HTMLAnchorElement::origin() const
 {
-    return SecurityOrigin::create(href()).get().toString();
+    return SecurityOrigin::create(href(), &document().topOrigin()).get().toString();
 }
 
 String HTMLAnchorElement::text()

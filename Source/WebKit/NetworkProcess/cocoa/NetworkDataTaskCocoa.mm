@@ -301,6 +301,7 @@ NetworkDataTaskCocoa::NetworkDataTaskCocoa(NetworkSession& session, NetworkDataT
     , m_isAlwaysOnLoggingAllowed(computeIsAlwaysOnLoggingAllowed(session))
     , m_shouldRelaxThirdPartyCookieBlocking(parameters.shouldRelaxThirdPartyCookieBlocking)
     , m_sourceOrigin(parameters.sourceOrigin)
+    , m_topOrigin(parameters.topOrigin)
 {
     auto request = parameters.request;
     auto url = request.url();
@@ -499,7 +500,7 @@ void NetworkDataTaskCocoa::willPerformHTTPRedirection(WebCore::ResourceResponse&
 {
     WTFEmitSignpost(m_task.get(), "DataTask", "redirect");
 
-    networkLoadMetrics().hasCrossOriginRedirect = networkLoadMetrics().hasCrossOriginRedirect || !WebCore::SecurityOrigin::create(request.url())->canRequest(redirectResponse.url());
+    networkLoadMetrics().hasCrossOriginRedirect = networkLoadMetrics().hasCrossOriginRedirect || !WebCore::SecurityOrigin::create(request.url(), m_topOrigin.ptr())->canRequest(redirectResponse.url());
 
     if (redirectResponse.httpStatusCode() == 307 || redirectResponse.httpStatusCode() == 308) {
         ASSERT(m_lastHTTPMethod == request.httpMethod());

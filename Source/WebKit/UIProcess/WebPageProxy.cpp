@@ -9091,7 +9091,7 @@ void WebPageProxy::clearNotificationPermissionState()
 
 void WebPageProxy::requestNotificationPermission(const String& originString, CompletionHandler<void(bool allowed)>&& completionHandler)
 {
-    auto origin = API::SecurityOrigin::createFromString(originString);
+    auto origin = API::SecurityOrigin::createFromString(originString, nullptr);
 
 #if ENABLE(NOTIFICATIONS)
     // Add origin to list of origins that have requested permission to use the Notifications API.

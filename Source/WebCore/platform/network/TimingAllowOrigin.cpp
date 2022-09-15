@@ -35,7 +35,8 @@ namespace WebCore {
 bool passesTimingAllowOriginCheck(const ResourceResponse& response, const SecurityOrigin& initiatorSecurityOrigin)
 {
     // https://fetch.spec.whatwg.org/#tao-check
-    auto resourceOrigin = SecurityOrigin::create(response.url());
+    // FIXME Check initiatorSecurityOrigin is a correct topOrigin here
+    auto resourceOrigin = SecurityOrigin::create(response.url(), &initiatorSecurityOrigin);
     if (resourceOrigin->isSameSchemeHostPort(initiatorSecurityOrigin))
         return true;
 

@@ -72,7 +72,7 @@ public:
     ApplicationCacheGroup* cacheGroupForURL(const URL&); // Cache to load a main resource from.
     ApplicationCacheGroup* fallbackCacheGroupForURL(const URL&); // Cache that has a fallback entry to load a main resource from if normal loading fails.
 
-    ApplicationCacheGroup* findOrCreateCacheGroup(const URL& manifestURL);
+    ApplicationCacheGroup* findOrCreateCacheGroup(const URL& manifestURL, const SecurityOrigin*);
     void cacheGroupDestroyed(ApplicationCacheGroup&);
     void cacheGroupMadeObsolete(ApplicationCacheGroup&);
 
@@ -105,7 +105,7 @@ private:
     WEBCORE_EXPORT ApplicationCacheStorage(const String& cacheDirectory, const String& flatFileSubdirectoryName);
 
     RefPtr<ApplicationCache> loadCache(unsigned storageID);
-    ApplicationCacheGroup* loadCacheGroup(const URL& manifestURL);
+    ApplicationCacheGroup* loadCacheGroup(const URL& manifestURL, const SecurityOrigin*);
     std::optional<Vector<URL>> manifestURLs();
     ApplicationCacheGroup* findInMemoryCacheGroup(const URL& manifestURL) const;
     bool deleteCacheGroup(const String& manifestURL);

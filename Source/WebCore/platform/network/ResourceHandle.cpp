@@ -26,6 +26,7 @@
 #include "config.h"
 #include "ResourceHandle.h"
 #include "ResourceHandleInternal.h"
+#include "ScriptExecutionContext.h"
 
 #include "Logging.h"
 #include "NetworkingContext.h"
@@ -77,8 +78,8 @@ void ResourceHandle::registerBuiltinSynchronousLoader(const AtomString& protocol
     builtinResourceHandleSynchronousLoaderMap().add(protocol, loader);
 }
 
-ResourceHandle::ResourceHandle(NetworkingContext* context, const ResourceRequest& request, ResourceHandleClient* client, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff, RefPtr<SecurityOrigin>&& sourceOrigin, bool isMainFrameNavigation)
-    : d(makeUnique<ResourceHandleInternal>(this, context, request, client, defersLoading, shouldContentSniff && shouldContentSniffURL(request.url()), shouldContentEncodingSniff, WTFMove(sourceOrigin), isMainFrameNavigation))
+ResourceHandle::ResourceHandle(NetworkingContext* context, const ResourceRequest& request, ResourceHandleClient* client, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff, RefPtr<SecurityOrigin>&& sourceOrigin, RefPtr<SecurityOrigin>&& topOrigin, bool isMainFrameNavigation)
+    : d(makeUnique<ResourceHandleInternal>(this, context, request, client, defersLoading, shouldContentSniff && shouldContentSniffURL(request.url()), shouldContentEncodingSniff, WTFMove(sourceOrigin), WTFMove(topOrigin), isMainFrameNavigation))
 {
     if (!request.url().isValid()) {
         scheduleFailure(InvalidURLFailure);
@@ -91,14 +92,14 @@ ResourceHandle::ResourceHandle(NetworkingContext* context, const ResourceRequest
     }
 }
 
-RefPtr<ResourceHandle> ResourceHandle::create(NetworkingContext* context, const ResourceRequest& request, ResourceHandleClient* client, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff, RefPtr<SecurityOrigin>&& sourceOrigin, bool isMainFrameNavigation)
+RefPtr<ResourceHandle> ResourceHandle::create(NetworkingContext* context, const ResourceRequest& request, ResourceHandleClient* client, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff, RefPtr<SecurityOrigin>&& sourceOrigin, RefPtr<SecurityOrigin>& topOrigin, bool isMainFrameNavigation)
 {
     if (auto protocol = request.url().protocol().toExistingAtomString(); !protocol.isNull()) {
         if (auto constructor = builtinResourceHandleConstructorMap().get(protocol))
-            return constructor(request, client);
+            return constructor(request, *topOrigin, client);
     }
 
-    auto newHandle = adoptRef(*new ResourceHandle(context, request, client, defersLoading, shouldContentSniff, shouldContentEncodingSniff, WTFMove(sourceOrigin), isMainFrameNavigation));
+    auto newHandle = adoptRef(*new ResourceHandle(context, request, client, defersLoading, shouldContentSniff, shouldContentEncodingSniff, WTFMove(sourceOrigin), WTFMove(topOrigin), isMainFrameNavigation));
 
     if (newHandle->d->m_scheduledFailureType != NoFailure)
         return newHandle;
@@ -137,7 +138,7 @@ void ResourceHandle::failureTimerFired()
     ASSERT_NOT_REACHED();
 }
 
-void ResourceHandle::loadResourceSynchronously(NetworkingContext* context, const ResourceRequest& request, ScriptExecutionEnvironment* scriptContext, StoredCredentialsPolicy storedCredentialsPolicy, ResourceError& error, ResourceResponse& response, Vector<uint8_t>& data)
+void ResourceHandle::loadResourceSynchronously(NetworkingContext* context, const ResourceRequest& request, ScriptExecutionContext* scriptContext, StoredCredentialsPolicy storedCredentialsPolicy, ResourceError& error, ResourceResponse& response, Vector<uint8_t>& data)
 {
     if (auto protocol = request.url().protocol().toExistingAtomString(); !protocol.isNull()) {
         if (auto constructor = builtinResourceHandleSynchronousLoaderMap().get(protocol)) {
@@ -146,7 +147,7 @@ void ResourceHandle::loadResourceSynchronously(NetworkingContext* context, const
         }
     }
 
-    platformLoadResourceSynchronously(context, request, storedCredentialsPolicy, scriptContext->securityOrigin(), error, response, data);
+    platformLoadResourceSynchronously(context, request, storedCredentialsPolicy, scriptContext->securityOrigin(), &scriptContext->topOrigin(), error, response, data);
 }
 
 ResourceHandleClient* ResourceHandle::client() const
@@ -222,7 +223,7 @@ void ResourceHandle::checkTAO(const ResourceResponse& response)
 
     RefPtr<SecurityOrigin> origin;
     if (d->m_isMainFrameNavigation)
-        origin = SecurityOrigin::create(firstRequest().url());
+        origin = SecurityOrigin::create(firstRequest().url(), nullptr);
     else
         origin = d->m_sourceOrigin;
 
@@ -273,6 +274,11 @@ bool ResourceHandle::shouldContentSniff() const
 bool ResourceHandle::shouldContentEncodingSniff() const
 {
     return d->m_shouldContentEncodingSniff;
+}
+
+RefPtr<SecurityOrigin> ResourceHandle::topOrigin() const
+{
+    return d->m_topOrigin;
 }
 
 bool ResourceHandle::shouldContentSniffURL(const URL& url)

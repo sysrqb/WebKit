@@ -200,9 +200,6 @@ public:
     bool isAppInitiated() const { return m_isAppInitiated; }
     WEBCORE_EXPORT void setIsAppInitiated(bool);
 
-    String topOrigin() const { return m_topOrigin; }
-    void setTopOrigin(String& ) const { return m_topOrigin; }
-
 protected:
     // Used when ResourceRequest is initialized from a platform representation of the request
     ResourceRequestBase()
@@ -214,7 +211,6 @@ protected:
         , m_hiddenFromInspector(false)
         , m_isTopSite(false)
         , m_isAppInitiated(true)
-        , m_topOrigin()
     {
     }
 
@@ -231,7 +227,6 @@ protected:
         , m_hiddenFromInspector(false)
         , m_isTopSite(false)
         , m_isAppInitiated(true)
-        , m_topOrigin(topOrigin.string())
     {
     }
 
@@ -274,7 +269,6 @@ private:
     const ResourceRequest& asResourceRequest() const;
 
     WEBCORE_EXPORT static double s_defaultTimeoutInterval;
-    String m_topOrigin;
 };
 
 bool equalIgnoringHeaderFields(const ResourceRequestBase&, const ResourceRequestBase&);

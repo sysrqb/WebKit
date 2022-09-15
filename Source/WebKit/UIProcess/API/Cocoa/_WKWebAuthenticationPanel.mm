@@ -95,7 +95,7 @@ static RetainPtr<NSData> produceClientDataJson(_WKWebAuthenticationType type, NS
         break;
     }
     auto challengeBuffer = ArrayBuffer::tryCreate(reinterpret_cast<const uint8_t*>(challenge.bytes), challenge.length);
-    auto securityOrigin = WebCore::SecurityOrigin::createFromString(origin);
+    auto securityOrigin = WebCore::SecurityOrigin::createFromString(origin, nullptr);
 
     auto clientDataJson = buildClientDataJson(clientDataType, WebCore::BufferSource(challengeBuffer), securityOrigin, WebAuthn::Scope::SameOrigin);
     return adoptNS([[NSData alloc] initWithBytes:clientDataJson->data() length:clientDataJson->byteLength()]);

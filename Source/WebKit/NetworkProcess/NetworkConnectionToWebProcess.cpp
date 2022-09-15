@@ -1098,12 +1098,12 @@ void NetworkConnectionToWebProcess::requestStorageAccessUnderOpener(WebCore::Reg
 
 void NetworkConnectionToWebProcess::addOriginAccessAllowListEntry(const String& sourceOrigin, const String& destinationProtocol, const String& destinationHost, bool allowDestinationSubdomains)
 {
-    SecurityPolicy::addOriginAccessAllowlistEntry(SecurityOrigin::createFromString(sourceOrigin).get(), destinationProtocol, destinationHost, allowDestinationSubdomains);
+    SecurityPolicy::addOriginAccessAllowlistEntry(SecurityOrigin::createFromString(sourceOrigin, nullptr).get(), destinationProtocol, destinationHost, allowDestinationSubdomains);
 }
 
 void NetworkConnectionToWebProcess::removeOriginAccessAllowListEntry(const String& sourceOrigin, const String& destinationProtocol, const String& destinationHost, bool allowDestinationSubdomains)
 {
-    SecurityPolicy::removeOriginAccessAllowlistEntry(SecurityOrigin::createFromString(sourceOrigin).get(), destinationProtocol, destinationHost, allowDestinationSubdomains);
+    SecurityPolicy::removeOriginAccessAllowlistEntry(SecurityOrigin::createFromString(sourceOrigin, nullptr).get(), destinationProtocol, destinationHost, allowDestinationSubdomains);
 }
 
 void NetworkConnectionToWebProcess::resetOriginAccessAllowLists()

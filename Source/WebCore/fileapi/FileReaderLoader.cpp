@@ -71,7 +71,7 @@ FileReaderLoader::~FileReaderLoader()
     cancel();
 
     if (!m_urlForReading.isEmpty() && m_context)
-        ThreadableBlobRegistry::unregisterBlobURL(m_context.value()->topOrigin(), m_urlForReading);
+        ThreadableBlobRegistry::unregisterBlobURL(m_urlForReading, m_context.value()->topOrigin());
 }
 
 void FileReaderLoader::start(ScriptExecutionContext* scriptExecutionContext, Blob& blob)

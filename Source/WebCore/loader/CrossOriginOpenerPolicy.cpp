@@ -101,8 +101,8 @@ static std::tuple<Ref<SecurityOrigin>, CrossOriginOpenerPolicy> computeResponseO
         return std::make_tuple(requester->securityOrigin, requester->securityOrigin->isSameOriginAs(requester->topOrigin) ? requester->crossOriginOpenerPolicy : CrossOriginOpenerPolicy { });
 
     // If the HTTP response contains a CSP header, it may set sandbox flags, which would cause the origin to become unique.
-    auto responseOrigin = responseCSP && responseCSP->sandboxFlags() != SandboxNone ? SecurityOrigin::createUnique() : SecurityOrigin::create(response.url());
-    return std::make_tuple(WTFMove(responseOrigin), obtainCrossOriginOpenerPolicy(response));
+    auto responseOrigin = responseCSP && responseCSP->sandboxFlags() != SandboxNone ? SecurityOrigin::createUnique() : SecurityOrigin::create(response.url(), requester->topOrigin);
+    return std::make_tuple(WTFMove(responseOrigin), obtainCrossOriginOpenerPolicy(response, requester->topOrigin));
 }
 
 // https://html.spec.whatwg.org/multipage/origin.html#coop-enforce
@@ -127,7 +127,7 @@ static CrossOriginOpenerPolicyEnforcementResult enforceResponseCrossOriginOpener
 }
 
 // https://html.spec.whatwg.org/multipage/origin.html#obtain-coop
-CrossOriginOpenerPolicy obtainCrossOriginOpenerPolicy(const ResourceResponse& response)
+CrossOriginOpenerPolicy obtainCrossOriginOpenerPolicy(const ResourceResponse& response, const SecurityOrigin& topOrigin)
 {
     std::optional<CrossOriginEmbedderPolicy> coep;
     auto ensureCOEP = [&coep, &response]() -> CrossOriginEmbedderPolicy& {
@@ -153,7 +153,7 @@ CrossOriginOpenerPolicy obtainCrossOriginOpenerPolicy(const ResourceResponse& re
     };
 
     CrossOriginOpenerPolicy policy;
-    if (!SecurityOrigin::create(response.url())->isPotentiallyTrustworthy())
+    if (!SecurityOrigin::create(response.url(), topOrigin)->isPotentiallyTrustworthy())
         return policy;
 
     parseCOOP(HTTPHeaderName::CrossOriginOpenerPolicy, policy.value, policy.reportingEndpoint);
