@@ -90,13 +90,6 @@ static inline OptionSet<AutoplayQuirk> allowedAutoplayQuirks(Document& document)
     return loader->allowedAutoplayQuirks();
 }
 
-static HashMap<RegistrableDomain, String>& updatableStorageAccessUserAgentStringQuirks()
-{
-    // FIXME: Make this a member of Quirks.
-    static MainThreadNeverDestroyed<HashMap<RegistrableDomain, String>> map;
-    return map.get();
-}
-
 #if PLATFORM(IOS_FAMILY)
 static inline bool isYahooMail(Document& document)
 {
@@ -365,25 +358,17 @@ bool Quirks::shouldAvoidUsingIOS13ForGmail() const
 #endif
 }
 
-void Quirks::updateStorageAccessUserAgentStringQuirks(HashMap<RegistrableDomain, String>&& userAgentStringQuirks)
-{
-    auto& quirks = updatableStorageAccessUserAgentStringQuirks();
-    quirks.clear();
-    for (auto&& [domain, userAgent] : userAgentStringQuirks)
-        quirks.add(WTFMove(domain), WTFMove(userAgent));
-}
-
-String Quirks::storageAccessUserAgentStringQuirkForDomain(const URL& url)
+std::optional<String> Quirks::userAgentStringQuirkForDomain(const URL& url, UserAgentStringPlatform userAgentStringPlatform)
 {
     if (!needsQuirks())
         return { };
 
-    const auto& quirks = updatableStorageAccessUserAgentStringQuirks();
-    RegistrableDomain domain { url };
-    auto iterator = quirks.find(domain);
-    if (iterator == quirks.end())
-        return { };
-    return iterator->value;
+    return m_userAgentStringOverrides.getUserAgentStringOverrideForDomain(url, userAgentStringPlatform);
+}
+
+void Quirks::setUserAgentStringQuirks(const UserAgentOverridesMap& overrides)
+{
+    m_userAgentStringOverrides.setUserAgentStringQuirks(overrides);
 }
 
 bool Quirks::isYoutubeEmbedDomain() const

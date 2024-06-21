@@ -2051,6 +2051,7 @@ page/SpatialNavigation.cpp
 page/TextIndicator.cpp
 page/UndoItem.cpp
 page/UndoManager.cpp
+page/UserAgentStringOverrides.cpp
 page/UserContentController.cpp
 page/UserContentProvider.cpp
 page/UserContentURLPattern.cpp
@@ -3240,6 +3241,7 @@ SVGElementFactory.cpp
 StyleBuilderGenerated.cpp
 StylePropertyShorthandFunctions.cpp
 UserAgentStyleSheetsData.cpp
+UserAgentStringOverridesGenerated.cpp
 WebCoreJSBuiltinInternals.cpp
 WebCoreJSBuiltins.cpp
 

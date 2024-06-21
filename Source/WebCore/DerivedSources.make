@@ -1848,6 +1848,8 @@ all : \
     MathMLElementTypeHelpers.h \
     MathMLNames.cpp \
     MathMLNames.h \
+    UserAgentStringOverrides.h \
+    UserAgentStringOverridesGenerated.cpp \
     UserAgentParts.cpp \
     UserAgentParts.h \
 #
@@ -2296,6 +2298,22 @@ EVENT_NAME_FILES_PATTERNS = $(subst .,%,$(EVENT_NAME_FILES))
 all : $(EVENT_NAME_FILES)
 $(EVENT_NAME_FILES_PATTERNS) : $(WebCore)/dom/make-event-names.py $(EVENT_NAME_JSON)
 	$(PYTHON) "$(WebCore)/dom/make-event-names.py" --event-names $(EVENT_NAME_JSON)
+
+# --------
+
+# User Agent String overrides
+
+USER_AGENT_STRING_OVERRIDE_JSON := $(WebCore)/page/UserAgentStringOverrides.json
+
+USER_AGENT_STRING_OVERRIDE_FILES = \
+    UserAgentStringOverridesGenerated.cpp \
+    UserAgentStringOverrides.h \
+#
+USER_AGENT_STRING_OVERRIDE_FILES_PATTERNS = $(subst .,%,$(USER_AGENT_STRING_OVERRIDE_FILES))
+
+all : $(USER_AGENT_STRING_OVERRIDE_FILES)
+$(USER_AGENT_STRING_OVERRIDE_FILES_PATTERNS) : $(WebCore)/page/make-user-agent-string-overrides.py $(USER_AGENT_STRING_OVERRIDE_JSON)
+	$(PYTHON) "$(WebCore)/page/make-user-agent-string-overrides.py" --input $(USER_AGENT_STRING_OVERRIDE_JSON)
 
 # --------
 
