@@ -7202,6 +7202,11 @@ void WebPageProxy::continueDecidePolicyForNavigationAction(Ref<API::NavigationAc
                 internals().pageLoadState.commitChanges();
             }
 
+            if (!frame->isMainFrame()) {
+                completionHandlerWrapper(PolicyAction::Ignore);
+                return;
+            }
+
             auto transaction = internals().pageLoadState.transaction();
             internals().pageLoadState.setTitleFromSafeBrowsingWarning(transaction, safeBrowsingWarning->title());
 
