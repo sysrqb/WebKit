@@ -34,6 +34,7 @@
 #include "PublicSuffixStore.h"
 #include "ResourceRequest.h"
 #include "RuntimeApplicationChecks.h"
+#include "Site.h"
 #include <wtf/NeverDestroyed.h>
 #include <wtf/ProcessPrivilege.h>
 #include <wtf/RunLoop.h>
@@ -188,6 +189,16 @@ bool NetworkStorageSession::shouldExemptDomainPairFromThirdPartyCookieBlocking(c
         return false;
 
     return topFrameDomain == resourceDomain || (m_appBoundDomains.contains(topFrameDomain) && m_appBoundDomains.contains(resourceDomain));
+}
+
+String NetworkStorageSession::cookiePartitionIdentifier(const ResourceRequest& request) const
+{
+    return cookiePartitionIdentifier(request.firstPartyForCookies());
+}
+
+String NetworkStorageSession::cookiePartitionIdentifier(const URL& firstPartyForCookies) const
+{
+    return Site { firstPartyForCookies }.string();
 }
 
 std::optional<Seconds> NetworkStorageSession::maxAgeCacheCap(const ResourceRequest& request)

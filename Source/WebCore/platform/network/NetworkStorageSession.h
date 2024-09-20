@@ -227,6 +227,8 @@ public:
     WEBCORE_EXPORT bool shouldBlockThirdPartyCookies(const RegistrableDomain&) const;
     WEBCORE_EXPORT bool shouldBlockThirdPartyCookiesButKeepFirstPartyCookiesFor(const RegistrableDomain&) const;
     WEBCORE_EXPORT void setAllCookiesToSameSiteStrict(const RegistrableDomain&, CompletionHandler<void()>&&);
+    WEBCORE_EXPORT String cookiePartitionIdentifier(const ResourceRequest&) const;
+    WEBCORE_EXPORT String cookiePartitionIdentifier(const URL&) const;
 #if PLATFORM(COCOA)
     WEBCORE_EXPORT static NSHTTPCookie *capExpiryOfPersistentCookie(NSHTTPCookie *, Seconds cap);
 #endif

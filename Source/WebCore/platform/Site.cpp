@@ -44,4 +44,11 @@ bool Site::matches(const URL& url) const
     return url.protocol() == m_protocol && m_domain.matches(url);
 }
 
+String Site::string()
+{
+    if (m_string.isNull())
+        m_string = makeString(m_protocol, "://"_s, m_domain.string());
+    return m_string;
+}
+
 } // namespace WebKit
