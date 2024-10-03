@@ -752,6 +752,8 @@ class Port(object):
             '__XPC_DYLD_LIBRARY_PATH',
             'JSC_useKernTCSM',
             '__XPC_JSC_useKernTCSM',
+            '__XPC_CFNETWORK_LOG',
+            '__XPC_CFNETWORK_DIAGNOSTICS',
 
             # Most ports (?):
             'HOME',
