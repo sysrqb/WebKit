@@ -1905,6 +1905,9 @@ std::unique_ptr<WebSocketTask> NetworkSessionCocoa::createWebSocketTask(WebPageP
             ensureMutableRequest()._privacyProxyFailClosedForUnreachableNonMainHosts = YES;
     }
 
+    if ([mutableRequest respondsToSelector:@selector(_setAllowOnlyPartitionedCookies:)])
+        [mutableRequest _setAllowOnlyPartitionedCookies:YES];
+
     enableAdvancedPrivacyProtections(ensureMutableRequest(), advancedPrivacyProtections);
 
     Ref sessionSet = sessionSetForPage(webPageProxyID);

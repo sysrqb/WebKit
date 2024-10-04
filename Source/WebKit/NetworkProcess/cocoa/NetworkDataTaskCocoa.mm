@@ -259,6 +259,9 @@ NetworkDataTaskCocoa::NetworkDataTaskCocoa(NetworkSession& session, NetworkDataT
         [mutableRequest _setAllowPrivateAccessTokensForThirdParty:YES];
 #endif
 
+    if ([mutableRequest respondsToSelector:@selector(_setAllowOnlyPartitionedCookies:)] && shouldBlockCookies)
+        [mutableRequest _setAllowOnlyPartitionedCookies:YES];
+
 #if ENABLE(APP_PRIVACY_REPORT)
     mutableRequest.get().attribution = request.isAppInitiated() ? NSURLRequestAttributionDeveloper : NSURLRequestAttributionUser;
 #endif
