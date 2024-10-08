@@ -214,11 +214,10 @@ NetworkDataTaskCocoa::NetworkDataTaskCocoa(NetworkSession& session, NetworkDataT
         applyBasicAuthorizationHeader(request, m_initialCredential);
     }
 
-    bool shouldBlockCookies = false;
-    shouldBlockCookies = m_storedCredentialsPolicy == WebCore::StoredCredentialsPolicy::EphemeralStateless;
+    WebCore::ThirdPartyCookieBlockingDecision thirdPartyCookieBlockingForRequest = m_storedCredentialsPolicy == WebCore::StoredCredentialsPolicy::EphemeralStateless ? WebCore::ThirdPartyCookieBlockingDecision::All : WebCore::ThirdPartyCookieBlockingDecision::None;
     if (auto* networkStorageSession = session.networkStorageSession()) {
-        if (!shouldBlockCookies)
-            shouldBlockCookies = networkStorageSession->shouldBlockCookies(request, frameID(), pageID(), shouldRelaxThirdPartyCookieBlocking());
+        if (thirdPartyCookieBlockingForRequest != WebCore::ThirdPartyCookieBlockingDecision::All)
+            thirdPartyCookieBlockingForRequest = networkStorageSession->thirdPartyCookieBlockingForRequest(request, frameID(), pageID(), shouldRelaxThirdPartyCookieBlocking());
     }
     restrictRequestReferrerToOriginIfNeeded(request);
 
@@ -259,8 +258,10 @@ NetworkDataTaskCocoa::NetworkDataTaskCocoa(NetworkSession& session, NetworkDataT
         [mutableRequest _setAllowPrivateAccessTokensForThirdParty:YES];
 #endif
 
-    if ([mutableRequest respondsToSelector:@selector(_setAllowOnlyPartitionedCookies:)] && shouldBlockCookies)
-        [mutableRequest _setAllowOnlyPartitionedCookies:YES];
+    if ([mutableRequest respondsToSelector:@selector(_setAllowOnlyPartitionedCookies:)]) {
+        auto shouldAllowOnlyPartitioned = thirdPartyCookieBlockingForRequest == WebCore::ThirdPartyCookieBlockingDecision::AllExceptPartitioned ? YES : NO;
+        [mutableRequest _setAllowOnlyPartitionedCookies:shouldAllowOnlyPartitioned];
+    }
 
 #if ENABLE(APP_PRIVACY_REPORT)
     mutableRequest.get().attribution = request.isAppInitiated() ? NSURLRequestAttributionDeveloper : NSURLRequestAttributionUser;
@@ -291,7 +292,6 @@ NetworkDataTaskCocoa::NetworkDataTaskCocoa(NetworkSession& session, NetworkDataT
 #endif
 
     updateTaskWithStoragePartitionIdentifier(request);
-    WTFLogAlways("_storagePartitionIdentifier: %@", m_task.get()._storagePartitionIdentifier);
 
     WTFBeginSignpost(m_task.get(), DataTask, "%" PUBLIC_LOG_STRING " %" PRIVATE_LOG_STRING " pri: %.2f preconnect: %d", request.httpMethod().utf8().data(), url.string().utf8().data(), toNSURLSessionTaskPriority(request.priority()), parameters.shouldPreconnectOnly == PreconnectOnly::Yes);
 
@@ -323,7 +323,7 @@ NetworkDataTaskCocoa::NetworkDataTaskCocoa(NetworkSession& session, NetworkDataT
 
     if (!isTopLevelNavigation())
         applyCookiePolicyForThirdPartyCloaking(request);
-    if (shouldBlockCookies) {
+    if (thirdPartyCookieBlockingForRequest == WebCore::ThirdPartyCookieBlockingDecision::All) {
 #if !RELEASE_LOG_DISABLED
         if (m_session->shouldLogCookieInformation())
             RELEASE_LOG_IF(isAlwaysOnLoggingAllowed(), Network, "%p - NetworkDataTaskCocoa::logCookieInformation: pageID=%" PRIu64 ", frameID=%" PRIu64 ", taskID=%lu: Blocking cookies for URL %s", this, pageID() ? pageID()->toUInt64() : 0, frameID() ? frameID()->object().toUInt64() : 0, (unsigned long)[m_task taskIdentifier], [nsRequest URL].absoluteString.UTF8String);

@@ -1423,7 +1423,7 @@ NetworkSessionCocoa::NetworkSessionCocoa(NetworkProcess& networkProcess, const N
 #if HAVE(NETWORK_LOADER)
     if (parameters.useNetworkLoader) {
         RELEASE_LOG_IF(*parameters.useNetworkLoader, NetworkSession, "Using experimental network loader.");
-        configuration._usesNWLoader = *parameters.useNetworkLoader && NO;
+        configuration._usesNWLoader = *parameters.useNetworkLoader;
     }
 #endif
 
