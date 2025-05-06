@@ -147,6 +147,8 @@ public:
 
     bool shouldAvoidPastingImagesAsWebContent() const;
 
+    bool shouldNotAutoUpgradeToHTTPS(const URL&);
+
     enum StorageAccessResult : bool { ShouldNotCancelEvent, ShouldCancelEvent };
     enum ShouldDispatchClick : bool { No, Yes };
 

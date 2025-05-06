@@ -125,6 +125,7 @@ static HashMap<RegistrableDomain, String>& updatableStorageAccessUserAgentString
 #else
 static inline bool needsDesktopUserAgentInternal(const URL&) { return false; }
 static inline bool shouldPreventOrientationMediaQueryFromEvaluatingToLandscapeInternal(const URL&) { return false; }
+static inline bool shouldNotAutoUpgradeToHTTPSInternal(const URL&) { return false; }
 #endif
 
 Quirks::Quirks(Document& document)
@@ -918,6 +919,11 @@ bool Quirks::shouldAvoidPastingImagesAsWebContent() const
 #else
     return false;
 #endif
+}
+
+bool Quirks::shouldNotAutoUpgradeToHTTPS(const URL& url)
+{
+    return needsQuirks() && shouldNotAutoUpgradeToHTTPSInternal(url);
 }
 
 // kinja.com and related sites rdar://60601895
