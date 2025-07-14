@@ -1073,6 +1073,17 @@ void WebsiteDataStore::removeData(OptionSet<WebsiteDataType> dataTypes, const Ve
 #endif
 }
 
+#if ENABLE(DEVICE_ORIENTATION)
+void WebsiteDataStore::clearDeviceOrientationPermissions()
+{
+    protectedDeviceOrientationAndMotionAccessController()->clearPermissions();
+#if ENABLE(WEB_ARCHIVE)
+    for (Ref page : m_pages)
+        protectedDeviceOrientationAndMotionAccessController()->clearPermissionsForWebArchives(page.get());
+#endif
+}
+#endif
+
 DeviceIdHashSaltStorage& WebsiteDataStore::ensureDeviceIdHashSaltStorage()
 {
     if (!m_deviceIdHashSaltStorage)

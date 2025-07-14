@@ -46,3 +46,13 @@ enum class PermissionName : uint8_t {
 };
 
 } // namespace WebCore
+
+namespace WTF {
+
+template <>
+struct DefaultHash<WebCore::PermissionName> {
+    static unsigned hash(const WebCore::PermissionName& name) { return computeHash(name); }
+    static bool equal(const WebCore::PermissionName& a, const WebCore::PermissionName& b) { return a == b; }
+    static constexpr bool safeToCompareToEmptyOrDeleted = true;
+};
+} // namespace WTF

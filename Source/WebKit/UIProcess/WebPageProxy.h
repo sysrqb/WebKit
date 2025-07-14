@@ -2525,6 +2525,12 @@ public:
     void setInteractionRegionsEnabled(bool);
 #endif
 
+#if ENABLE(WEB_ARCHIVE)
+    std::optional<WebCore::PermissionState> cachedPermissionForWebArchive(WebCore::PermissionName, const StringView url) const;
+    void setPermissionForWebArchive(WebCore::PermissionName, WebCore::PermissionState);
+    void clearAllPermissionForWebArchive(WebCore::PermissionName);
+#endif
+
     void queryPermission(const WebCore::ClientOrigin&, const WebCore::PermissionDescriptor&, CompletionHandler<void(std::optional<WebCore::PermissionState>)>&&);
 
     void generateTestReport(const String& message, const String& group);
@@ -3851,6 +3857,10 @@ private:
         
 #if PLATFORM(IOS_FAMILY) && ENABLE(DEVICE_ORIENTATION)
     RefPtr<WebDeviceOrientationUpdateProviderProxy> m_webDeviceOrientationUpdateProviderProxy;
+#endif
+
+#if ENABLE(WEB_ARCHIVE)
+    HashMap<std::pair<String, WebCore::PermissionName>, WebCore::PermissionState> m_permissionDecisionsByFilePathForWebArchive;
 #endif
 
     RefPtr<WebScreenOrientationManagerProxy> m_screenOrientationManager;

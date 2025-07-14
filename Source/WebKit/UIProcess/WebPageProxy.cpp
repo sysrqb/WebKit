@@ -4856,7 +4856,8 @@ void WebPageProxy::receivedNavigationActionPolicyDecision(WebProcessProxy& proce
 #if ENABLE(DEVICE_ORIENTATION)
     if (navigation) {
         bool isPermissionSet = false;
-        auto origin = SecurityOriginData::fromURL(navigation->currentRequest().url());
+        URL currentRequestURL = navigation->currentRequest().url();
+        auto origin = SecurityOriginData::fromURL(currentRequestURL);
         Ref deviceOrientationAndMotionAccessController = websiteDataStore->deviceOrientationAndMotionAccessController();
         RefPtr websitePolicies = navigation->websitePolicies();
         if (websitePolicies) {
@@ -4871,7 +4872,7 @@ void WebPageProxy::receivedNavigationActionPolicyDecision(WebProcessProxy& proce
                 navigation->setWebsitePolicies(API::WebsitePolicies::create());
                 websitePolicies = navigation->websitePolicies();
             }
-            auto cachedPermission = deviceOrientationAndMotionAccessController->cachedDeviceOrientationPermission(origin);
+            auto cachedPermission = deviceOrientationAndMotionAccessController->cachedDeviceOrientationPermission(origin, currentRequestURL, *this);
             websitePolicies->setDeviceOrientationAndMotionAccessState(cachedPermission);
         }
     }
@@ -12296,6 +12297,68 @@ void WebPageProxy::revokeGeolocationAuthorizationToken(const String& authorizati
     internals().protectedGeolocationPermissionRequestManager()->revokeAuthorizationToken(authorizationToken);
 }
 
+#if ENABLE(WEB_ARCHIVE)
+std::optional<PermissionState> WebPageProxy::cachedPermissionForWebArchive(PermissionName permissionName, const StringView url) const
+{
+    if (!didLoadWebArchive())
+        return std::nullopt;
+
+    switch (permissionName) {
+        // All permissions that are supported by platforms that support
+        // WEB_ARCHIVE must be partitioned by file path.
+        case PermissionName::Accelerometer:
+        case PermissionName::Gyroscope:
+        case PermissionName::Magnetometer:
+        case PermissionName::Notifications:
+            break;
+        case PermissionName::Camera:
+        case PermissionName::Microphone:
+        case PermissionName::Push:
+        case PermissionName::ScreenWakeLock:
+        case PermissionName::SpeakerSelection:
+
+        // BackgroundFetch is not a persistent permission.
+        case PermissionName::BackgroundFetch:
+
+        case PermissionName::DisplayCapture:
+        case PermissionName::Geolocation:
+
+        // Not supported.
+        case PermissionName::Bluetooth:
+        case PermissionName::Midi:
+        case PermissionName::Nfc:
+            ASSERT_NOT_REACHED();
+    }
+
+    URL activeURL { url.toStringWithoutCopying() };
+    if (auto it = m_permissionDecisionsByFilePathForWebArchive.find({ activeURL.fileSystemPath(), permissionName }); it != m_permissionDecisionsByFilePathForWebArchive.end())
+        return std::optional { it->value };
+    return std::nullopt;
+}
+
+void WebPageProxy::setPermissionForWebArchive(PermissionName permissionName, PermissionState permissionState)
+{
+    if (!didLoadWebArchive())
+        return;
+
+    URL activeURL { protectedPageLoadState()->activeURL() };
+    m_permissionDecisionsByFilePathForWebArchive.set({ activeURL.fileSystemPath(), permissionName }, permissionState);
+}
+
+void WebPageProxy::clearAllPermissionForWebArchive(PermissionName permissionName)
+{
+    HashSet<std::pair<String, WebCore::PermissionName>> toBeDeleted;
+    for (auto [key, value] : m_permissionDecisionsByFilePathForWebArchive) {
+        if (key.second != permissionName)
+            continue;
+        toBeDeleted.add(key);
+    }
+
+    for (auto& key : toBeDeleted)
+        m_permissionDecisionsByFilePathForWebArchive.remove(key);
+}
+#endif
+
 void WebPageProxy::queryPermission(const ClientOrigin& clientOrigin, const PermissionDescriptor& descriptor, CompletionHandler<void(std::optional<PermissionState>)>&& completionHandler)
 {
     bool canAPISucceed = true;
@@ -12304,8 +12367,8 @@ void WebPageProxy::queryPermission(const ClientOrigin& clientOrigin, const Permi
     String name;
 
 #if ENABLE(WEB_ARCHIVE)
-    if (didLoadWebArchive()) {
-        completionHandler(PermissionState::Denied);
+    if (auto state = cachedPermissionForWebArchive(descriptor.name, protectedPageLoadState()->activeURL())) {
+        completionHandler(state);
         return;
     }
 #endif
@@ -12738,7 +12801,7 @@ bool WebPageProxy::originHasDeviceOrientationAndMotionAccess(const WebCore::Secu
     if (!protectedPreferences()->deviceOrientationPermissionAPIEnabled())
         return true;
 
-    return protectedWebsiteDataStore()->protectedDeviceOrientationAndMotionAccessController()->cachedDeviceOrientationPermission(origin) == DeviceOrientationOrMotionPermissionState::Granted;
+    return protectedWebsiteDataStore()->protectedDeviceOrientationAndMotionAccessController()->cachedDeviceOrientationPermission(origin, URL { protectedPageLoadState()->activeURL() }, *this) == DeviceOrientationOrMotionPermissionState::Granted;
 }
 
 #endif
@@ -12824,6 +12887,13 @@ void WebPageProxy::clearNotificationPermissionState()
 
 void WebPageProxy::requestNotificationPermission(const String& originString, CompletionHandler<void(bool allowed)>&& completionHandler)
 {
+#if ENABLE(WEB_ARCHIVE)
+    if (auto state = cachedPermissionForWebArchive(PermissionName::Notifications, protectedPageLoadState()->activeURL())) {
+        completionHandler(*state == PermissionState::Granted);
+        return;
+    }
+#endif
+
     Ref origin = API::SecurityOrigin::createFromString(originString);
 
 #if ENABLE(NOTIFICATIONS)
@@ -12833,8 +12903,13 @@ void WebPageProxy::requestNotificationPermission(const String& originString, Com
 
     m_uiClient->decidePolicyForNotificationPermissionRequest(*this, origin.get(), [weakThis = WeakPtr { *this }, completionHandler = WTFMove(completionHandler)](bool allowed) mutable {
         RefPtr protectedThis = weakThis.get();
-        if (allowed && protectedThis)
-            protectedThis->pageWillLikelyUseNotifications();
+        if (protectedThis) {
+            if (allowed)
+                protectedThis->pageWillLikelyUseNotifications();
+#if ENABLE(WEB_ARCHIVE)
+            protectedThis->setPermissionForWebArchive(PermissionName::Notifications, allowed ? PermissionState::Granted : PermissionState::Denied);
+#endif
+        }
         completionHandler(allowed);
     });
 }

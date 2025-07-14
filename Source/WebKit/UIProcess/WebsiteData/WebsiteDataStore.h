@@ -294,6 +294,8 @@ public:
 #endif
     void allowTLSCertificateChainForLocalPCMTesting(const WebCore::CertificateInfo&);
 
+    void clearDeviceOrientationPermissions();
+
     DeviceIdHashSaltStorage& ensureDeviceIdHashSaltStorage();
     Ref<DeviceIdHashSaltStorage> ensureProtectedDeviceIdHashSaltStorage();
 

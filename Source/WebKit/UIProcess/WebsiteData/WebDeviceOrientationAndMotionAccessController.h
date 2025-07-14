@@ -48,8 +48,11 @@ public:
 
     void shouldAllowAccess(WebPageProxy&, WebFrameProxy&, FrameInfoData&&, bool mayPrompt, CompletionHandler<void(WebCore::DeviceOrientationOrMotionPermissionState)>&&);
     void clearPermissions() { m_deviceOrientationPermissionDecisions.clear(); }
+#if ENABLE(WEB_ARCHIVE)
+    void clearPermissionsForWebArchives(WebPageProxy&);
+#endif
 
-    WebCore::DeviceOrientationOrMotionPermissionState cachedDeviceOrientationPermission(const WebCore::SecurityOriginData&) const;
+    WebCore::DeviceOrientationOrMotionPermissionState cachedDeviceOrientationPermission(const WebCore::SecurityOriginData&, const URL&, WebPageProxy&) const;
     void setCachedDeviceOrientationPermission(const WebCore::SecurityOriginData&, WebCore::DeviceOrientationOrMotionPermissionState);
 
 private:
